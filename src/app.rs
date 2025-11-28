@@ -8,11 +8,12 @@ use ratatui::{
     DefaultTerminal, Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    text::{Line, Text},
+    text::{Text},
     widgets::*,
 };
 
 use crate::chapter::{self, Chapter}; // added
+use textwrap; // 添加这一行
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Focus {
@@ -144,8 +145,21 @@ impl App {
             .border_type(BorderType::Rounded)
             .title("Content");
 
+        // compute available inner width for wrapping (leave 2 for borders)
+        let inner_width = area.width.saturating_sub(2) as usize;
+        let wrap_width = if inner_width == 0 { 1 } else { inner_width };
+
         let items: Vec<ListItem> = if !self.view_lines.is_empty() {
-            self.view_lines.iter().map(|line| ListItem::new(line.clone())).collect()
+            self.view_lines.iter().map(|line| {
+                // wrap the logical line into visual lines
+                let wrapped = textwrap::wrap(line, wrap_width);
+                let joined = if wrapped.is_empty() {
+                    "".to_string()
+                } else {
+                    wrapped.iter().map(|s| s.to_string()).collect::<Vec<_>>().join("\n")
+                };
+                ListItem::new(Text::from(joined))
+            }).collect()
         } else {
             vec![ListItem::new("") ]
         };

@@ -8,12 +8,12 @@ use ratatui::{
     DefaultTerminal, Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    text::{Text},
+    text::Text,
     widgets::*,
 };
 
-use crate::chapter::{self, Chapter}; // added
-use textwrap; // 添加这一行
+use crate::chapter::{self, Chapter};
+use textwrap;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Focus {
@@ -29,26 +29,29 @@ impl Default for Focus {
 
 #[derive(Debug, Default)]
 pub struct App {
+    // state
     running: bool,
     file_path: PathBuf,
+    // full file content
     lines: Vec<String>,
-    // offset is now relative to view_lines (keeps paragraph scroll if you keep paragraph; currently not used)
+    // offset is now relative to view_lines
     view_offset: usize,
     // TOC
     chapters: Vec<Chapter>,
-    list_state: ListState,
+    // TOC selection state
+    toc_state: ListState,
     // current view (either selected chapter or whole file)
     view_lines: Vec<String>,
-
     // new: content selection state + focus
     content_state: ListState,
+    // current focus
     focus: Focus,
 }
 
 impl App {
     pub fn new(args: Options) -> Self {
-        let mut ls = ListState::default();
-        ls.select(Some(0));
+        let mut toc_state = ListState::default();
+        toc_state.select(Some(0));
         let mut content_state = ListState::default();
         content_state.select(Some(0));
         Self {
@@ -57,7 +60,7 @@ impl App {
             lines: Vec::new(),
             view_offset: 0,
             chapters: Vec::new(),
-            list_state: ls,
+            toc_state: toc_state,
             view_lines: Vec::new(),
             content_state,
             focus: Focus::Toc,
@@ -65,17 +68,25 @@ impl App {
     }
 
     fn load_file(&mut self) -> Result<()> {
-        // load file content into self.lines
-        let content = fs::read_to_string(&self.file_path)?;
+        // Try reading as UTF-8 first
+        let content = match fs::read_to_string(&self.file_path) {
+            Ok(s) => s,
+            Err(_) => {
+                // Fallback: read as bytes and decode as GBK/GB2312
+                let bytes = fs::read(&self.file_path)?;
+                let (cow, _, _) = encoding_rs::GBK.decode(&bytes);
+                cow.into_owned()
+            }
+        };
         self.lines = content.lines().map(|s| s.to_string()).collect();
         // parse chapters from lines
         self.chapters = chapter::parse_lines(&self.lines);
         // set initial view: first chapter if exists, else whole file
         if !self.chapters.is_empty() {
-            self.list_state.select(Some(0));
+            self.toc_state.select(Some(0));
             self.select_chapter(0);
         } else {
-            self.list_state.select(None);
+            self.toc_state.select(None);
             self.view_lines = self.lines.clone();
             self.view_offset = 0;
             if !self.view_lines.is_empty() {
@@ -133,7 +144,11 @@ impl App {
     fn render_title(&self, frame: &mut Frame, area: Rect) {
         let title_text = self.file_path.to_str().unwrap_or("NovelTUI");
         let p = Paragraph::new(title_text)
-            .style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
+            .style(
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            )
             .alignment(Alignment::Center);
         frame.render_widget(p, area);
     }
@@ -150,23 +165,33 @@ impl App {
         let wrap_width = if inner_width == 0 { 1 } else { inner_width };
 
         let items: Vec<ListItem> = if !self.view_lines.is_empty() {
-            self.view_lines.iter().map(|line| {
-                // wrap the logical line into visual lines
-                let wrapped = textwrap::wrap(line, wrap_width);
-                let joined = if wrapped.is_empty() {
-                    "".to_string()
-                } else {
-                    wrapped.iter().map(|s| s.to_string()).collect::<Vec<_>>().join("\n")
-                };
-                ListItem::new(Text::from(joined))
-            }).collect()
+            self.view_lines
+                .iter()
+                .map(|line| {
+                    // wrap the logical line into visual lines
+                    let wrapped = textwrap::wrap(line, wrap_width);
+                    let joined = if wrapped.is_empty() {
+                        "".to_string()
+                    } else {
+                        wrapped
+                            .iter()
+                            .map(|s| s.to_string())
+                            .collect::<Vec<_>>()
+                            .join("\n")
+                    };
+                    ListItem::new(Text::from(joined))
+                })
+                .collect()
         } else {
-            vec![ListItem::new("") ]
+            vec![ListItem::new("")]
         };
 
         // highlight style depends on focus
         let highlight_style = if self.focus == Focus::Content {
-            Style::default().fg(Color::Black).bg(Color::White).add_modifier(Modifier::BOLD)
+            Style::default()
+                .fg(Color::Black)
+                .bg(Color::White)
+                .add_modifier(Modifier::BOLD)
         } else {
             Style::default().fg(Color::Gray)
         };
@@ -183,24 +208,33 @@ impl App {
     // new: render TOC (目录)
     fn render_toc(&mut self, frame: &mut Frame, area: Rect) {
         let items: Vec<ListItem> = if !self.chapters.is_empty() {
-            self.chapters.iter().map(|c| {
-                ListItem::new(c.title.clone())
-            }).collect()
+            self.chapters
+                .iter()
+                .map(|c| ListItem::new(c.title.clone()))
+                .collect()
         } else {
             vec![ListItem::new("NONE")]
         };
 
         let toc_highlight = if self.focus == Focus::Toc {
-            Style::default().fg(Color::Black).bg(Color::LightGreen).add_modifier(Modifier::BOLD)
+            Style::default()
+                .fg(Color::Black)
+                .bg(Color::LightGreen)
+                .add_modifier(Modifier::BOLD)
         } else {
             Style::default().fg(Color::Gray)
         };
 
         let list = List::new(items)
-            .block(Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title("TOC"))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_type(BorderType::Rounded)
+                    .title("TOC"),
+            )
             .highlight_style(toc_highlight);
 
-        frame.render_stateful_widget(list, area, &mut self.list_state);
+        frame.render_stateful_widget(list, area, &mut self.toc_state);
     }
 
     fn render_footer(&self, frame: &mut Frame, area: Rect) {
@@ -225,15 +259,30 @@ impl App {
             .split(inner);
 
         let chapter_info = if !self.chapters.is_empty() {
-            if let Some(sel) = self.list_state.selected() {
-                self.chapters.get(sel).map(|c| c.title.clone()).unwrap_or_else(|| {
-                    self.file_path.file_name().and_then(|s| s.to_str()).unwrap_or("").to_string()
-                })
+            if let Some(sel) = self.toc_state.selected() {
+                self.chapters
+                    .get(sel)
+                    .map(|c| c.title.clone())
+                    .unwrap_or_else(|| {
+                        self.file_path
+                            .file_name()
+                            .and_then(|s| s.to_str())
+                            .unwrap_or("")
+                            .to_string()
+                    })
             } else {
-                self.file_path.file_name().and_then(|s| s.to_str()).unwrap_or("").to_string()
+                self.file_path
+                    .file_name()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("")
+                    .to_string()
             }
         } else {
-            self.file_path.file_name().and_then(|s| s.to_str()).unwrap_or("").to_string()
+            self.file_path
+                .file_name()
+                .and_then(|s| s.to_str())
+                .unwrap_or("")
+                .to_string()
         };
 
         let focus_label = match self.focus {
@@ -258,7 +307,7 @@ impl App {
         if let Some(ch) = self.chapters.get(idx) {
             self.view_lines = ch.content.clone();
             self.view_offset = 0;
-            self.list_state.select(Some(idx));
+            self.toc_state.select(Some(idx));
             // reset content cursor
             if !self.view_lines.is_empty() {
                 self.content_state.select(Some(0));
@@ -285,11 +334,21 @@ impl App {
                 // unified movement: Up/k and Down/j behave the same, target depends on focus
                 KeyCode::Up | KeyCode::Char('k') => {
                     if self.focus == Focus::Toc {
-                        if let Some(selected) = self.list_state.selected() {
+                        if let Some(selected) = self.toc_state.selected() {
                             if selected > 0 {
                                 let new = selected - 1;
                                 self.select_chapter(new);
+                            } else {
+                                // at top, move to last chapter
+                                if !self.chapters.is_empty() {
+                                    let last = self.chapters.len() - 1;
+                                    self.select_chapter(last);
+                                }
                             }
+                        } else if !self.chapters.is_empty() {
+                            // no selection: move to last
+                            let last = self.chapters.len() - 1;
+                            self.select_chapter(last);
                         }
                     } else {
                         // content focus
@@ -305,10 +364,15 @@ impl App {
 
                 KeyCode::Down | KeyCode::Char('j') => {
                     if self.focus == Focus::Toc {
-                        if let Some(selected) = self.list_state.selected() {
+                        if let Some(selected) = self.toc_state.selected() {
                             if selected + 1 < self.chapters.len() {
                                 let new = selected + 1;
                                 self.select_chapter(new);
+                            } else {
+                                // at bottom, move to first chapter
+                                if !self.chapters.is_empty() {
+                                    self.select_chapter(0);
+                                }
                             }
                         } else if !self.chapters.is_empty() {
                             self.select_chapter(0);
@@ -324,10 +388,10 @@ impl App {
                         }
                     }
                 }
-
+                // dont need
                 KeyCode::Enter => {
                     if self.focus == Focus::Toc {
-                        if let Some(idx) = self.list_state.selected() {
+                        if let Some(idx) = self.toc_state.selected() {
                             self.select_chapter(idx);
                             // move focus to content after jump
                             self.focus = Focus::Content;
@@ -339,8 +403,8 @@ impl App {
 
                 _ => {}
             },
+            // println messages for other event types can be added here
             _ => {}
         }
     }
-
 }

@@ -21,8 +21,14 @@ pub fn parse_lines(lines: &[String]) -> Vec<Chapter> {
             if let Some(prev) = current.take() {
                 chapters.push(prev);
             }
-            let num = caps.get(1).and_then(|m| m.as_str().parse::<usize>().ok()).unwrap_or(0);
-            let rest = caps.get(2).map(|m| m.as_str().trim().to_string()).unwrap_or_default();
+            let num = caps
+                .get(1)
+                .and_then(|m| m.as_str().parse::<usize>().ok())
+                .unwrap_or(0);
+            let rest = caps
+                .get(2)
+                .map(|m| m.as_str().trim().to_string())
+                .unwrap_or_default();
             let is_cn = re_cn.is_match(line);
             let title = if rest.is_empty() {
                 if is_cn {

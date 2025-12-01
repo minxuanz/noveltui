@@ -14,6 +14,7 @@ use ratatui::{
 
 use crate::chapter::{self, Chapter};
 use textwrap;
+use chardetng::EncodingDetector; 
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Focus {
@@ -72,10 +73,9 @@ impl App {
         let content = match fs::read_to_string(&self.file_path) {
             Ok(s) => s,
             Err(_) => {
-                // Fallback: read as bytes and decode as GBK/GB2312
+                // Fallback: read bytes and auto-detect encoding then decode
                 let bytes = fs::read(&self.file_path)?;
-                let (cow, _, _) = encoding_rs::GBK.decode(&bytes);
-                cow.into_owned()
+                Self::decode_with_auto_detect(&bytes)
             }
         };
         self.lines = content.lines().map(|s| s.to_string()).collect();
@@ -96,6 +96,15 @@ impl App {
             }
         }
         Ok(())
+    }
+
+    // helper
+    fn decode_with_auto_detect(bytes: &[u8]) -> String {
+        let mut det = EncodingDetector::new();
+        det.feed(bytes, true);
+        let encoding = det.guess(None, true);
+        let (cow, _, _) = encoding.decode(bytes);
+        cow.into_owned()
     }
 
     pub fn run(&mut self, mut terminal: DefaultTerminal) -> Result<()> {

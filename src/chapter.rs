@@ -9,7 +9,7 @@ pub struct Chapter {
 }
 
 pub fn parse_lines(lines: &[String]) -> Vec<Chapter> {
-    let re_cn = Regex::new(r"^\s*第\s*(\d+)\s*章(?:\s*(.*))?$").unwrap();
+    let re_cn = Regex::new(r".*第\s*(\d+)\s*章(?:\s*(.*))?$").unwrap();
     let re_en = Regex::new(r"(?i)^\s*chapter\s*(\d+)\s*[:\.\s-]*\s*(.*)?$").unwrap();
     let mut chapters: Vec<Chapter> = Vec::new();
     let mut current: Option<Chapter> = None;

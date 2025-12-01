@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+chardetng = "0.1.17"
 clap = { version = "4.5.53", features = ["derive"] }
 color-eyre = "0.6.5"
 crossterm = "0.29.0"

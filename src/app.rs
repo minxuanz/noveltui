@@ -160,8 +160,8 @@ impl App {
             .border_type(BorderType::Rounded)
             .title("Content");
 
-        // compute available inner width for wrapping (leave 2 for borders)
-        let inner_width = area.width.saturating_sub(2) as usize;
+        // compute available inner width for wrapping (leave 5 for borders)
+        let inner_width = area.width.saturating_sub(5) as usize;
         let wrap_width = if inner_width == 0 { 1 } else { inner_width };
 
         let items: Vec<ListItem> = if !self.view_lines.is_empty() {

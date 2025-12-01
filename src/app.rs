@@ -318,93 +318,88 @@ impl App {
     }
 
     fn handle_crossterm_event(&mut self) {
-        // handle crossterm events here
         match event::read() {
             Ok(Event::Key(key_event)) => match key_event.code {
                 KeyCode::Char('q') => self.running = false,
-
-                // focus switches
-                KeyCode::Char('h') | KeyCode::Left => {
-                    self.focus = Focus::Toc;
-                }
-                KeyCode::Char('l') | KeyCode::Right => {
-                    self.focus = Focus::Content;
-                }
-
-                // unified movement: Up/k and Down/j behave the same, target depends on focus
-                KeyCode::Up | KeyCode::Char('k') => {
-                    if self.focus == Focus::Toc {
-                        if let Some(selected) = self.toc_state.selected() {
-                            if selected > 0 {
-                                let new = selected - 1;
-                                self.select_chapter(new);
-                            } else {
-                                // at top, move to last chapter
-                                if !self.chapters.is_empty() {
-                                    let last = self.chapters.len() - 1;
-                                    self.select_chapter(last);
-                                }
-                            }
-                        } else if !self.chapters.is_empty() {
-                            // no selection: move to last
-                            let last = self.chapters.len() - 1;
-                            self.select_chapter(last);
-                        }
-                    } else {
-                        // content focus
-                        if let Some(sel) = self.content_state.selected() {
-                            if sel > 0 {
-                                self.content_state.select(Some(sel - 1));
-                            }
-                        } else if !self.view_lines.is_empty() {
-                            self.content_state.select(Some(0));
-                        }
-                    }
-                }
-
-                KeyCode::Down | KeyCode::Char('j') => {
-                    if self.focus == Focus::Toc {
-                        if let Some(selected) = self.toc_state.selected() {
-                            if selected + 1 < self.chapters.len() {
-                                let new = selected + 1;
-                                self.select_chapter(new);
-                            } else {
-                                // at bottom, move to first chapter
-                                if !self.chapters.is_empty() {
-                                    self.select_chapter(0);
-                                }
-                            }
-                        } else if !self.chapters.is_empty() {
-                            self.select_chapter(0);
-                        }
-                    } else {
-                        // content focus
-                        if let Some(sel) = self.content_state.selected() {
-                            if sel + 1 < self.view_lines.len() {
-                                self.content_state.select(Some(sel + 1));
-                            }
-                        } else if !self.view_lines.is_empty() {
-                            self.content_state.select(Some(0));
-                        }
-                    }
-                }
-                // dont need
-                KeyCode::Enter => {
-                    if self.focus == Focus::Toc {
-                        if let Some(idx) = self.toc_state.selected() {
-                            self.select_chapter(idx);
-                            // move focus to content after jump
-                            self.focus = Focus::Content;
-                        }
-                    } else {
-                        // future: do something with content Enter
-                    }
-                }
-
+                KeyCode::Char('h') | KeyCode::Left => self.switch_focus_to_toc(),
+                KeyCode::Char('l') | KeyCode::Right => self.switch_focus_to_content(),
+                KeyCode::Up | KeyCode::Char('k') => self.handle_move_up(),
+                KeyCode::Down | KeyCode::Char('j') => self.handle_move_down(),
+                KeyCode::Enter => self.handle_enter(),
                 _ => {}
             },
-            // println messages for other event types can be added here
             _ => {}
+        }
+    }
+
+    fn switch_focus_to_toc(&mut self) {
+        self.focus = Focus::Toc;
+    }
+
+    fn switch_focus_to_content(&mut self) {
+        self.focus = Focus::Content;
+    }
+
+    fn handle_move_up(&mut self) {
+        match self.focus {
+            Focus::Toc => self.move_toc_up(),
+            Focus::Content => self.move_content_up(),
+        }
+    }
+
+    fn handle_move_down(&mut self) {
+        match self.focus {
+            Focus::Toc => self.move_toc_down(),
+            Focus::Content => self.move_content_down(),
+        }
+    }
+
+    fn move_toc_up(&mut self) {
+        if let Some(selected) = self.toc_state.selected() {
+            if selected > 0 {
+                self.select_chapter(selected - 1);
+            } else if !self.chapters.is_empty() {
+                self.select_chapter(self.chapters.len() - 1);
+            }
+        }
+    }
+
+    fn move_toc_down(&mut self) {
+        if let Some(selected) = self.toc_state.selected() {
+            if selected + 1 < self.chapters.len() {
+                self.select_chapter(selected + 1);
+            } else if !self.chapters.is_empty() {
+                self.select_chapter(0);
+            }
+        }
+    }
+
+    fn move_content_up(&mut self) {
+        if let Some(sel) = self.content_state.selected() {
+            if sel > 0 {
+                self.content_state.select(Some(sel - 1));
+            }
+        } else if !self.view_lines.is_empty() {
+            self.content_state.select(Some(0));
+        }
+    }
+
+    fn move_content_down(&mut self) {
+        if let Some(sel) = self.content_state.selected() {
+            if sel + 1 < self.view_lines.len() {
+                self.content_state.select(Some(sel + 1));
+            }
+        } else if !self.view_lines.is_empty() {
+            self.content_state.select(Some(0));
+        }
+    }
+
+    fn handle_enter(&mut self) {
+        if self.focus == Focus::Toc {
+            if let Some(idx) = self.toc_state.selected() {
+                self.select_chapter(idx);
+                self.focus = Focus::Content;
+            }
         }
     }
 }

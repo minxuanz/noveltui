@@ -440,6 +440,13 @@ impl App {
         if let Some(sel) = self.content_state.selected() {
             if sel > 0 {
                 self.content_state.select(Some(sel - 1));
+            } else if let Some(toc_sel) = self.toc_state.selected() {
+                if toc_sel > 0 {
+                    self.select_chapter(toc_sel - 1);
+                    if !self.view_lines.is_empty() {
+                        self.content_state.select(Some(self.view_lines.len() - 1));
+                    }
+                }
             }
         } else if !self.view_lines.is_empty() {
             self.content_state.select(Some(0));
@@ -450,6 +457,10 @@ impl App {
         if let Some(sel) = self.content_state.selected() {
             if sel + 1 < self.view_lines.len() {
                 self.content_state.select(Some(sel + 1));
+            } else if let Some(toc_sel) = self.toc_state.selected() {
+                if toc_sel + 1 < self.chapters.len() {
+                    self.select_chapter(toc_sel + 1);
+                }
             }
         } else if !self.view_lines.is_empty() {
             self.content_state.select(Some(0));

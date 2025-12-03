@@ -12,6 +12,7 @@ use ratatui::{
     widgets::*,
 };
 
+use crate::bookmark::{self, BOOKMARK_SYMBOL, Bookmark};
 use crate::chapter::{self, Chapter};
 use chardetng::EncodingDetector;
 use textwrap;
@@ -28,6 +29,7 @@ pub enum Focus {
 pub struct App {
     // state
     running: bool,
+    // file path
     file_path: PathBuf,
     // full file content
     lines: Vec<String>,
@@ -43,7 +45,11 @@ pub struct App {
     content_state: ListState,
     // current focus
     focus: Focus,
-    //
+    // bookmarks
+    bookmarks: Vec<Bookmark>,
+    // bookmark selection state
+    bookmark_state: ListState,
+    // whether to show bookmark menu
     show_bookmark_menu: bool,
 }
 
@@ -63,6 +69,8 @@ impl App {
             view_lines: Vec::new(),
             content_state,
             focus: Focus::Toc,
+            bookmarks: Vec::new(),
+            bookmark_state: ListState::default(),
             show_bookmark_menu: false,
         }
     }
@@ -80,6 +88,10 @@ impl App {
         self.lines = content.lines().map(|s| s.to_string()).collect();
         // parse chapters from lines
         self.chapters = chapter::parse_lines(&self.lines);
+        self.bookmarks = bookmark::parse_bookmarks(&self.chapters);
+        if !self.bookmarks.is_empty() {
+            self.bookmark_state.select(Some(0));
+        }
         // set initial view: first chapter if exists, else whole file
         if !self.chapters.is_empty() {
             self.toc_state.select(Some(0));
@@ -319,7 +331,7 @@ impl App {
             .style(Style::default().fg(Color::LightCyan));
         frame.render_widget(left, cols[0]);
 
-        let hints = "[q]Quit [b]Bookmark | [h/←]TOC [l/→]Content | [j/↓]Down [k/↑]Up [Enter]Jump";
+        let hints = "[q]Quit [b]Bookmark [m]Toggle Mark | [h/←]Left [l/→]Right | [j/↓]Down [k/↑]Up";
         let right = Paragraph::new(hints)
             .alignment(Alignment::Right)
             .style(Style::default().fg(Color::White));
@@ -345,11 +357,12 @@ impl App {
         match event::read() {
             Ok(Event::Key(key_event)) => match key_event.code {
                 KeyCode::Char('q') => self.running = false,
-                KeyCode::Char('b') => self.show_bookmark_menu = !self.show_bookmark_menu,
-                KeyCode::Char('h') | KeyCode::Left => self.switch_focus_to_toc(),
-                KeyCode::Char('l') | KeyCode::Right => self.switch_focus_to_content(),
-                KeyCode::Up | KeyCode::Char('k') => self.handle_move_up(),
-                KeyCode::Down | KeyCode::Char('j') => self.handle_move_down(),
+                KeyCode::Char('b') => self.toggle_bookmark_menu(),
+                KeyCode::Char('m') => self.toggle_bookmark_at_current_line(),
+                KeyCode::Char('h') | KeyCode::Left => self.switch_focus_left(),
+                KeyCode::Char('l') | KeyCode::Right => self.switch_focus_right(),
+                KeyCode::Char('k') | KeyCode::Up => self.handle_move_up(),
+                KeyCode::Char('j') | KeyCode::Down => self.handle_move_down(),
                 KeyCode::Enter => self.handle_enter(),
                 _ => {}
             },
@@ -357,19 +370,41 @@ impl App {
         }
     }
 
-    fn switch_focus_to_toc(&mut self) {
-        self.focus = Focus::Toc;
+    fn switch_focus_left(&mut self) {
+        self.focus = match self.focus {
+            Focus::Bookmark => Focus::Content,
+            Focus::Content => Focus::Toc,
+            Focus::Toc => {
+                if self.show_bookmark_menu {
+                    Focus::Bookmark
+                } else {
+                    Focus::Content
+                }
+            }
+        };
     }
 
-    fn switch_focus_to_content(&mut self) {
-        self.focus = Focus::Content;
+    fn switch_focus_right(&mut self) {
+        self.focus = match self.focus {
+            Focus::Toc => Focus::Content,
+            // if bookmark menu is shown, switch to it
+            // if not,go to TOC
+            Focus::Content => {
+                if self.show_bookmark_menu {
+                    Focus::Bookmark
+                } else {
+                    Focus::Toc
+                }
+            }
+            Focus::Bookmark => Focus::Toc,
+        };
     }
 
     fn handle_move_up(&mut self) {
         match self.focus {
             Focus::Toc => self.move_toc_up(),
             Focus::Content => self.move_content_up(),
-            Focus::Bookmark => {}
+            Focus::Bookmark => self.move_bookmark_up(),
         }
     }
 
@@ -377,7 +412,7 @@ impl App {
         match self.focus {
             Focus::Toc => self.move_toc_down(),
             Focus::Content => self.move_content_down(),
-            Focus::Bookmark => {}
+            Focus::Bookmark => self.move_bookmark_down(),
         }
     }
 
@@ -430,17 +465,138 @@ impl App {
         }
     }
 
-    fn render_bookmark_menu(&self, frame: &mut Frame, area: Rect) {
-        let block = Block::default()
-            .title("Bookmarks")
-            .borders(Borders::ALL)
-            .border_type(BorderType::Rounded);
+    fn toggle_bookmark_menu(&mut self) {
+        self.show_bookmark_menu = !self.show_bookmark_menu;
+        if self.show_bookmark_menu {
+            self.focus = Focus::Bookmark;
+        } else {
+            // Revert focus to content when hiding
+            self.focus = Focus::Content;
+        }
+    }
 
-        let text = "Bookmark functionality not yet implemented.\nPress 'b' to close.";
-        let p = Paragraph::new(text)
-            .block(block)
-            .alignment(Alignment::Center);
+    fn render_bookmark_menu(&mut self, frame: &mut Frame, area: Rect) {
+        let items: Vec<ListItem> = self
+            .bookmarks
+            .iter()
+            .map(|b| ListItem::new(b.line_content.clone()))
+            .collect();
 
-        frame.render_widget(p, area);
+        let highlight_style = if self.focus == Focus::Bookmark {
+            Style::default()
+                .add_modifier(Modifier::BOLD)
+                .bg(Color::DarkGray)
+        } else {
+            Style::default().fg(Color::Gray)
+        };
+
+        let list = List::new(items)
+            .block(
+                Block::default()
+                    .title("Bookmarks")
+                    .borders(Borders::ALL)
+                    .border_type(BorderType::Rounded),
+            )
+            .highlight_style(highlight_style);
+
+        frame.render_stateful_widget(list, area, &mut self.bookmark_state);
+    }
+
+    fn toggle_bookmark_at_current_line(&mut self) {
+        if self.focus != Focus::Content {
+            return;
+        }
+
+        if let (Some(chapter_idx), Some(line_idx_in_view)) =
+            (self.toc_state.selected(), self.content_state.selected())
+        {
+            // Get immutable info before mutable borrow
+            let chapter_start_line = match self.chapters.get(chapter_idx) {
+                Some(c) => c.start_line,
+                None => return, // Chapter not found, should not happen
+            };
+
+            if let Some(chapter) = self.chapters.get_mut(chapter_idx) {
+                if let Some(line) = chapter.content.get_mut(line_idx_in_view) {
+                    if line.trim().is_empty() {
+                        return; // Don't bookmark empty lines
+                    }
+
+                    if line.trim().starts_with(BOOKMARK_SYMBOL) {
+                        *line = line
+                            .trim()
+                            .strip_prefix(BOOKMARK_SYMBOL)
+                            .unwrap_or("")
+                            .trim_start()
+                            .to_string();
+                    } else {
+                        line.insert_str(0, &format!("{} ", BOOKMARK_SYMBOL));
+                    }
+
+                    if let Some(view_line) = self.view_lines.get_mut(line_idx_in_view) {
+                        *view_line = line.clone();
+                    }
+
+                    // Update the line in the full file content (self.lines)
+                    let global_line_idx = chapter_start_line + line_idx_in_view;
+                    if let Some(global_line) = self.lines.get_mut(global_line_idx) {
+                        *global_line = line.clone();
+                    }
+
+                    self.bookmarks = bookmark::parse_bookmarks(&self.chapters);
+                    if self.bookmark_state.selected().is_none() && !self.bookmarks.is_empty() {
+                        self.bookmark_state.select(Some(0));
+                    } else if let Some(selected) = self.bookmark_state.selected() {
+                        if selected >= self.bookmarks.len() {
+                            self.bookmark_state.select(if self.bookmarks.is_empty() {
+                                None
+                            } else {
+                                Some(self.bookmarks.len() - 1)
+                            });
+                        }
+                    }
+
+                    // Persist changes to disk
+                    if self.save_file().is_err() {
+                        // In a real app, we'd want to handle this error, maybe show a message
+                        // pritnf error to stderr
+                        eprintln!("Error saving file after toggling bookmark.");
+                    }
+                }
+            }
+        }
+    }
+
+    fn move_bookmark_up(&mut self) {
+        if let Some(selected) = self.bookmark_state.selected() {
+            if selected > 0 {
+                self.bookmark_state.select(Some(selected - 1));
+                self.jump_to_selected_bookmark();
+            }
+        }
+    }
+
+    fn move_bookmark_down(&mut self) {
+        if let Some(selected) = self.bookmark_state.selected() {
+            if selected + 1 < self.bookmarks.len() {
+                self.bookmark_state.select(Some(selected + 1));
+                self.jump_to_selected_bookmark();
+            }
+        }
+    }
+
+    fn jump_to_selected_bookmark(&mut self) {
+        if let Some(selected) = self.bookmark_state.selected() {
+            if let Some(bookmark) = self.bookmarks.get(selected).cloned() {
+                self.select_chapter(bookmark.chapter_index);
+                self.content_state.select(Some(bookmark.line_in_chapter));
+            }
+        }
+    }
+
+    fn save_file(&self) -> Result<()> {
+        let content = self.lines.join("\n");
+        fs::write(&self.file_path, content)?;
+        Ok(())
     }
 }

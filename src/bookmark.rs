@@ -13,18 +13,20 @@ pub fn parse_bookmarks(chapters: &[Chapter]) -> Vec<Bookmark> {
     let mut bookmarks = Vec::new();
     for (i, chapter) in chapters.iter().enumerate() {
         for (j, line) in chapter.content.iter().enumerate() {
-            if line.trim().starts_with(BOOKMARK_SYMBOL) {
+            if line.trim().ends_with(BOOKMARK_SYMBOL) {
                 let content = line
                     .trim()
-                    .strip_prefix(BOOKMARK_SYMBOL)
+                    .strip_suffix(BOOKMARK_SYMBOL)
                     .unwrap_or("")
                     .trim()
                     .to_string();
-                bookmarks.push(Bookmark {
-                    chapter_index: i,
-                    line_in_chapter: j,
-                    line_content: content,
-                });
+                if !content.is_empty() {
+                    bookmarks.push(Bookmark {
+                        chapter_index: i,
+                        line_in_chapter: j,
+                        line_content: content,
+                    });
+                }
             }
         }
     }

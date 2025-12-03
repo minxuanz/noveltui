@@ -522,15 +522,16 @@ impl App {
                         return; // Don't bookmark empty lines
                     }
 
-                    if line.trim().starts_with(BOOKMARK_SYMBOL) {
-                        *line = line
-                            .trim()
-                            .strip_prefix(BOOKMARK_SYMBOL)
-                            .unwrap_or("")
-                            .trim_start()
-                            .to_string();
+                    if line.trim().ends_with(BOOKMARK_SYMBOL) {
+                        // Bookmarked: remove the symbol from the end
+                        if let Some(pos) = line.rfind(BOOKMARK_SYMBOL) {
+                            let new_line = &line[..pos];
+                            *line = new_line.trim_end().to_string();
+                        }
                     } else {
-                        line.insert_str(0, &format!("{} ", BOOKMARK_SYMBOL));
+                        // Not bookmarked: add symbol to the end
+                        *line = line.trim_end().to_string();
+                        line.push_str(&format!(" {}", BOOKMARK_SYMBOL));
                     }
 
                     if let Some(view_line) = self.view_lines.get_mut(line_idx_in_view) {
@@ -543,6 +544,7 @@ impl App {
                         *global_line = line.clone();
                     }
 
+                    // Re-parse bookmarks
                     self.bookmarks = bookmark::parse_bookmarks(&self.chapters);
                     if self.bookmark_state.selected().is_none() && !self.bookmarks.is_empty() {
                         self.bookmark_state.select(Some(0));

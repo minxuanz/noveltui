@@ -13,19 +13,15 @@ use ratatui::{
 };
 
 use crate::chapter::{self, Chapter};
+use chardetng::EncodingDetector;
 use textwrap;
-use chardetng::EncodingDetector; 
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Default)]
 pub enum Focus {
+    #[default]
     Toc,
     Content,
-}
-
-impl Default for Focus {
-    fn default() -> Self {
-        Focus::Toc
-    }
+    Bookmark,
 }
 
 #[derive(Debug, Default)]
@@ -47,6 +43,8 @@ pub struct App {
     content_state: ListState,
     // current focus
     focus: Focus,
+    //
+    show_bookmark_menu: bool,
 }
 
 impl App {
@@ -65,6 +63,7 @@ impl App {
             view_lines: Vec::new(),
             content_state,
             focus: Focus::Toc,
+            show_bookmark_menu: false,
         }
     }
 
@@ -123,14 +122,29 @@ impl App {
         let chunks = self.get_layout_chunks(frame.area());
         self.render_title(frame, chunks[0]);
 
-        // middle area: split into left TOC and right content
-        let middle = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([Constraint::Length(20), Constraint::Min(1)].as_ref())
-            .split(chunks[1]);
+        // middle area: split into left TOC, content, and optionally bookmark
+        let middle_chunks = if self.show_bookmark_menu {
+            Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([
+                    Constraint::Length(20),
+                    Constraint::Min(1),
+                    Constraint::Length(20),
+                ])
+                .split(chunks[1])
+        } else {
+            Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([Constraint::Length(20), Constraint::Min(1)])
+                .split(chunks[1])
+        };
 
-        self.render_toc(frame, middle[0]);
-        self.render_content(frame, middle[1]);
+        self.render_toc(frame, middle_chunks[0]);
+        self.render_content(frame, middle_chunks[1]);
+
+        if self.show_bookmark_menu {
+            self.render_bookmark_menu(frame, middle_chunks[2]);
+        }
 
         self.render_footer(frame, chunks[2]);
     }
@@ -264,7 +278,7 @@ impl App {
         // split into left (chapter info) and right (hints)
         let cols = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(60), Constraint::Percentage(40)].as_ref())
+            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
             .split(inner);
 
         let chapter_info = if !self.chapters.is_empty() {
@@ -297,6 +311,7 @@ impl App {
         let focus_label = match self.focus {
             Focus::Toc => "[TOC]",
             Focus::Content => "[CONTENT]",
+            Focus::Bookmark => "[BOOKMARK]",
         };
 
         let left = Paragraph::new(format!("{} {}", focus_label, chapter_info))
@@ -304,7 +319,7 @@ impl App {
             .style(Style::default().fg(Color::LightCyan));
         frame.render_widget(left, cols[0]);
 
-        let hints = "[q] Quit   [h/←] Focus TOC   [l/→] Focus Content   [j/↓] Down   [k/↑] Up   [Enter] Jump";
+        let hints = "[q]Quit [b]Bookmark | [h/←]TOC [l/→]Content | [j/↓]Down [k/↑]Up [Enter]Jump";
         let right = Paragraph::new(hints)
             .alignment(Alignment::Right)
             .style(Style::default().fg(Color::White));
@@ -330,6 +345,7 @@ impl App {
         match event::read() {
             Ok(Event::Key(key_event)) => match key_event.code {
                 KeyCode::Char('q') => self.running = false,
+                KeyCode::Char('b') => self.show_bookmark_menu = !self.show_bookmark_menu,
                 KeyCode::Char('h') | KeyCode::Left => self.switch_focus_to_toc(),
                 KeyCode::Char('l') | KeyCode::Right => self.switch_focus_to_content(),
                 KeyCode::Up | KeyCode::Char('k') => self.handle_move_up(),
@@ -353,6 +369,7 @@ impl App {
         match self.focus {
             Focus::Toc => self.move_toc_up(),
             Focus::Content => self.move_content_up(),
+            Focus::Bookmark => {}
         }
     }
 
@@ -360,6 +377,7 @@ impl App {
         match self.focus {
             Focus::Toc => self.move_toc_down(),
             Focus::Content => self.move_content_down(),
+            Focus::Bookmark => {}
         }
     }
 
@@ -410,5 +428,19 @@ impl App {
                 self.focus = Focus::Content;
             }
         }
+    }
+
+    fn render_bookmark_menu(&self, frame: &mut Frame, area: Rect) {
+        let block = Block::default()
+            .title("Bookmarks")
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded);
+
+        let text = "Bookmark functionality not yet implemented.\nPress 'b' to close.";
+        let p = Paragraph::new(text)
+            .block(block)
+            .alignment(Alignment::Center);
+
+        frame.render_widget(p, area);
     }
 }

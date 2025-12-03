@@ -222,7 +222,7 @@ impl App {
         };
 
         // highlight style depends on focus
-        let highlight_style = if self.focus == Focus::Content {
+        let highlight_style = if self.focus != Focus::Toc {
             Style::default()
                 .fg(Color::Black)
                 .bg(Color::White)
@@ -251,13 +251,11 @@ impl App {
             vec![ListItem::new("NONE")]
         };
 
-        let toc_highlight = if self.focus == Focus::Toc {
+        let toc_highlight = {
             Style::default()
                 .fg(Color::Black)
                 .bg(Color::LightGreen)
                 .add_modifier(Modifier::BOLD)
-        } else {
-            Style::default().fg(Color::Gray)
         };
 
         let list = List::new(items)
@@ -391,6 +389,7 @@ impl App {
             // if not,go to TOC
             Focus::Content => {
                 if self.show_bookmark_menu {
+                    self.jump_to_selected_bookmark();
                     Focus::Bookmark
                 } else {
                     Focus::Toc

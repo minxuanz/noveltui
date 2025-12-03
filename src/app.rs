@@ -441,9 +441,11 @@ impl App {
             if sel > 0 {
                 self.content_state.select(Some(sel - 1));
             } else if let Some(toc_sel) = self.toc_state.selected() {
+                // jump to previous chapter
                 if toc_sel > 0 {
                     self.select_chapter(toc_sel - 1);
                     if !self.view_lines.is_empty() {
+                        // select last line of new chapter
                         self.content_state.select(Some(self.view_lines.len() - 1));
                     }
                 }

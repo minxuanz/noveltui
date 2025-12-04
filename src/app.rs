@@ -339,7 +339,7 @@ impl App {
             .chapters
             .get(self.toc_state.selected().unwrap_or(0))
             .map_or(0, |chapter| chapter.start_line + selected_line_in_view);
-        let progress_indicator = format!("{}/{}", global_line_number, total_lines);
+        let progress_indicator = format!("{}/{} [m]Toggle Mark [b]Bookmark", global_line_number, total_lines);
         //let hints = "[q]Quit [b]Bookmark [m]Toggle Mark | [h/←]Left [l/→]Right | [j/↓]Down [k/↑]Up";
         let right = Paragraph::new(progress_indicator)
             .alignment(Alignment::Right)

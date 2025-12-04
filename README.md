@@ -1,8 +1,17 @@
-only support txt file
+# Noveltui
 
-only prase title like Chapter 1, Chapter 2, 第1章， 第2章...
+## Tips
+- only support txt file (support UTF-8/GBK/GB2312... encoding)
 
-# Keybinds
+- only parse title like Chapter 1, Chapter 2, 第1章， 第2章...
+
+## Usage
+`./noveltui <FILE_PATH>`
+
+## Build
+`cargo build --release`
+
+## Keybinds
 
 | Key         | Action        |
 |-------------|---------------|

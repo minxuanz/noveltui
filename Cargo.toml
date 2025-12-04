@@ -3,6 +3,12 @@ name = "noveltui"
 version = "0.1.0"
 edition = "2024"
 
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = "symbols"
+
 [dependencies]
 chardetng = "0.1.17"
 clap = { version = "4.5.53", features = ["derive"] }

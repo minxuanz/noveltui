@@ -9,7 +9,7 @@ pub struct Bookmark {
     pub line_content: String,
 }
 
-pub fn parse_bookmarks(chapters: &[Chapter]) -> Vec<Bookmark> {
+pub fn parse_bookmarks(chapters: &Vec<Chapter>) -> Vec<Bookmark> {
     let mut bookmarks = Vec::new();
     for (i, chapter) in chapters.iter().enumerate() {
         for (j, line) in chapter.content.iter().enumerate() {

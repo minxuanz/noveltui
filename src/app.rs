@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use crate::args::Options;
 use color_eyre::Result;
-use crossterm::event::{self, Event, KeyCode};
+use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 use ratatui::{
     DefaultTerminal, Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -65,7 +65,7 @@ impl App {
             lines: Vec::new(),
             view_offset: 0,
             chapters: Vec::new(),
-            toc_state: toc_state,
+            toc_state,
             view_lines: Vec::new(),
             content_state,
             focus: Focus::Toc,
@@ -329,8 +329,19 @@ impl App {
             .style(Style::default().fg(Color::LightCyan));
         frame.render_widget(left, cols[0]);
 
-        let hints = "[q]Quit [b]Bookmark [m]Toggle Mark | [h/←]Left [l/→]Right | [j/↓]Down [k/↑]Up";
-        let right = Paragraph::new(hints)
+        let total_lines = self.lines.len();
+        let _view_lines = self.view_lines.len();
+        let selected_line_in_view = match self.content_state.selected() {
+            Some(idx) => idx + 1,
+            None => 0,
+        };
+        let global_line_number = self
+            .chapters
+            .get(self.toc_state.selected().unwrap_or(0))
+            .map_or(0, |chapter| chapter.start_line + selected_line_in_view);
+        let progress_indicator = format!("{}/{}", global_line_number, total_lines);
+        //let hints = "[q]Quit [b]Bookmark [m]Toggle Mark | [h/←]Left [l/→]Right | [j/↓]Down [k/↑]Up";
+        let right = Paragraph::new(progress_indicator)
             .alignment(Alignment::Right)
             .style(Style::default().fg(Color::White));
         frame.render_widget(right, cols[1]);
@@ -355,6 +366,9 @@ impl App {
         match event::read() {
             Ok(Event::Key(key_event)) => match key_event.code {
                 KeyCode::Char('q') => self.running = false,
+                KeyCode::Char('c') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
+                    self.running = false
+                }
                 KeyCode::Char('b') => self.toggle_bookmark_menu(),
                 KeyCode::Char('m') => self.toggle_bookmark_at_current_line(),
                 KeyCode::Char('h') | KeyCode::Left => self.switch_focus_left(),

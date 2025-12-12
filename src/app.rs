@@ -51,12 +51,17 @@ pub struct App {
     bookmark_state: ListState,
     // whether to show bookmark menu
     show_bookmark_menu: bool,
-    // 
+    // whether to show title and footer
     show_tilte_footer: bool,
+    // initial jump targets
+    initial_bookmark_jump: Option<usize>,
+    // new: initial chapter jump target
+    initial_chapter_jump: Option<usize>,
 }
 
 impl App {
     pub fn new(args: Options) -> Self {
+        // Change signature to accept Options
         let mut toc_state = ListState::default();
         toc_state.select(Some(0));
         let mut content_state = ListState::default();
@@ -75,6 +80,8 @@ impl App {
             bookmark_state: ListState::default(),
             show_bookmark_menu: false,
             show_tilte_footer: true,
+            initial_bookmark_jump: args.bookmark, // Store the bookmark index
+            initial_chapter_jump: args.chapter,   // Store the chapter index
         }
     }
 
@@ -124,11 +131,57 @@ impl App {
     pub fn run(&mut self, mut terminal: DefaultTerminal) -> Result<()> {
         self.load_file()?;
         self.running = true;
+
+        // Call the new method to handle initial jumps
+        self.handle_initial_jumps()?; // New line: call the extracted logic
+
         while self.running {
             terminal.draw(|f| {
                 self.render(f);
             })?;
             self.handle_crossterm_event();
+        }
+        Ok(())
+    }
+
+    // New private method to handle initial chapter and bookmark jumps
+    fn handle_initial_jumps(&mut self) -> Result<()> {
+        match (
+            self.initial_chapter_jump.take(),
+            self.initial_bookmark_jump.take(),
+        ) {
+            (Some(chapter_idx), None) => {
+                // 处理章节跳转
+                if chapter_idx < self.chapters.len() {
+                    self.select_chapter(chapter_idx.saturating_sub(1));
+                    self.focus = Focus::Content; // 跳转后聚焦内容区
+                } else {
+                    return Err(color_eyre::eyre::eyre!(
+                        "Only have {} Chapter(s). Cannot jump to chapter {}.",
+                        self.chapters.len(),
+                        chapter_idx
+                    ));
+                }
+            }
+            (None, Some(bookmark_idx)) => {
+                // 处理书签跳转
+                if bookmark_idx < self.bookmarks.len() {
+                    self.bookmark_state
+                        .select(Some(bookmark_idx.saturating_sub(1)));
+                    self.jump_to_selected_bookmark();
+                    self.focus = Focus::Content; // 跳转后聚焦内容区
+                } else {
+                    return Err(color_eyre::eyre::eyre!(
+                        "Only have {} Bookmark(s). Cannot jump to bookmark {}.",
+                        self.bookmarks.len(),
+                        bookmark_idx
+                    ));
+                }
+            }
+            (None, None) => {}
+            (Some(_), Some(_)) => {
+                unreachable!()
+            }
         }
         Ok(())
     }
@@ -172,28 +225,23 @@ impl App {
     fn get_layout_chunks(&self, area: Rect) -> Vec<Rect> {
         if !self.show_tilte_footer {
             Layout::default()
-            .direction(Direction::Vertical)
-            .constraints(
-                [
-                    Constraint::Min(1),
-                ]
-                .as_ref(),
-            )
-            .split(area)
-            .to_vec()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Min(1)].as_ref())
+                .split(area)
+                .to_vec()
         } else {
             Layout::default()
-            .direction(Direction::Vertical)
-            .constraints(
-                [
-                    Constraint::Length(1),
-                    Constraint::Min(1),
-                    Constraint::Length(1),
-                ]
-                .as_ref(),
-            )
-            .split(area)
-            .to_vec()
+                .direction(Direction::Vertical)
+                .constraints(
+                    [
+                        Constraint::Length(1),
+                        Constraint::Min(1),
+                        Constraint::Length(1),
+                    ]
+                    .as_ref(),
+                )
+                .split(area)
+                .to_vec()
         }
     }
 
@@ -360,7 +408,10 @@ impl App {
             .chapters
             .get(self.toc_state.selected().unwrap_or(0))
             .map_or(0, |chapter| chapter.start_line + selected_line_in_view);
-        let progress_indicator = format!("{}/{} [m]Toggle Mark [b]Bookmark", global_line_number, total_lines);
+        let progress_indicator = format!(
+            "{}/{} [m]Toggle Mark [b]Bookmark",
+            global_line_number, total_lines
+        );
         //let hints = "[q]Quit [b]Bookmark [m]Toggle Mark | [h/←]Left [l/→]Right | [j/↓]Down [k/↑]Up";
         let right = Paragraph::new(progress_indicator)
             .alignment(Alignment::Right)
@@ -522,14 +573,16 @@ impl App {
             self.focus = Focus::Content;
         }
     }
-    
+
     fn render_bookmark_menu(&mut self, frame: &mut Frame, area: Rect) {
         let items: Vec<ListItem> = self
             .bookmarks
             .iter()
-            .map(|b| ListItem::new(b.line_content.clone()))
+            .enumerate() // Add enumerate to get the index
+            .map(|(i, b)| {
+                ListItem::new(format!("{}. {}", i + 1, b.line_content.clone())) // Prepend with index
+            })
             .collect();
-
         let highlight_style = if self.focus == Focus::Bookmark {
             Style::default()
                 .add_modifier(Modifier::BOLD)

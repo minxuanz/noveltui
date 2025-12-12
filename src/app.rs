@@ -51,6 +51,8 @@ pub struct App {
     bookmark_state: ListState,
     // whether to show bookmark menu
     show_bookmark_menu: bool,
+    // 
+    show_tilte_footer: bool,
 }
 
 impl App {
@@ -72,6 +74,7 @@ impl App {
             bookmarks: Vec::new(),
             bookmark_state: ListState::default(),
             show_bookmark_menu: false,
+            show_tilte_footer: true,
         }
     }
 
@@ -132,8 +135,11 @@ impl App {
 
     fn render(&mut self, frame: &mut Frame) {
         let chunks = self.get_layout_chunks(frame.area());
-        self.render_title(frame, chunks[0]);
+        if self.show_tilte_footer {
+            self.render_title(frame, chunks[0]);
+        }
 
+        let index = if self.show_tilte_footer { 1 } else { 0 };
         // middle area: split into left TOC, content, and optionally bookmark
         let middle_chunks = if self.show_bookmark_menu {
             Layout::default()
@@ -143,12 +149,12 @@ impl App {
                     Constraint::Min(1),
                     Constraint::Length(20),
                 ])
-                .split(chunks[1])
+                .split(chunks[index])
         } else {
             Layout::default()
                 .direction(Direction::Horizontal)
                 .constraints([Constraint::Length(20), Constraint::Min(1)])
-                .split(chunks[1])
+                .split(chunks[index])
         };
 
         self.render_toc(frame, middle_chunks[0]);
@@ -158,11 +164,25 @@ impl App {
             self.render_bookmark_menu(frame, middle_chunks[2]);
         }
 
-        self.render_footer(frame, chunks[2]);
+        if self.show_tilte_footer {
+            self.render_footer(frame, chunks[2]);
+        }
     }
 
     fn get_layout_chunks(&self, area: Rect) -> Vec<Rect> {
-        Layout::default()
+        if !self.show_tilte_footer {
+            Layout::default()
+            .direction(Direction::Vertical)
+            .constraints(
+                [
+                    Constraint::Min(1),
+                ]
+                .as_ref(),
+            )
+            .split(area)
+            .to_vec()
+        } else {
+            Layout::default()
             .direction(Direction::Vertical)
             .constraints(
                 [
@@ -174,6 +194,7 @@ impl App {
             )
             .split(area)
             .to_vec()
+        }
     }
 
     fn render_title(&self, frame: &mut Frame, area: Rect) {
@@ -370,6 +391,7 @@ impl App {
                     self.running = false
                 }
                 KeyCode::Char('b') => self.toggle_bookmark_menu(),
+                KeyCode::Char('s') => self.show_tilte_footer = !self.show_tilte_footer,
                 KeyCode::Char('m') => self.toggle_bookmark_at_current_line(),
                 KeyCode::Char('h') | KeyCode::Left => self.switch_focus_left(),
                 KeyCode::Char('l') | KeyCode::Right => self.switch_focus_right(),
@@ -500,7 +522,7 @@ impl App {
             self.focus = Focus::Content;
         }
     }
-
+    
     fn render_bookmark_menu(&mut self, frame: &mut Frame, area: Rect) {
         let items: Vec<ListItem> = self
             .bookmarks

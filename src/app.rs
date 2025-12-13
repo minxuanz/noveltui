@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use crate::args::Options;
 use color_eyre::Result;
-use crossterm::event::{self, Event, KeyCode, KeyModifiers};
+use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
 use ratatui::{
     DefaultTerminal, Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -52,7 +52,7 @@ pub struct App {
     // whether to show bookmark menu
     show_bookmark_menu: bool,
     // whether to show title and footer
-    show_tilte_footer: bool,
+    show_title_footer: bool,
     // initial jump targets
     initial_bookmark_jump: Option<usize>,
     // new: initial chapter jump target
@@ -79,7 +79,7 @@ impl App {
             bookmarks: Vec::new(),
             bookmark_state: ListState::default(),
             show_bookmark_menu: false,
-            show_tilte_footer: true,
+            show_title_footer: true,
             initial_bookmark_jump: args.bookmark, // Store the bookmark index
             initial_chapter_jump: args.chapter,   // Store the chapter index
         }
@@ -139,7 +139,8 @@ impl App {
             terminal.draw(|f| {
                 self.render(f);
             })?;
-            self.handle_crossterm_event();
+            self.handle_event(event::read()?);
+            //self.handle_crossterm_event();
         }
         Ok(())
     }
@@ -188,11 +189,11 @@ impl App {
 
     fn render(&mut self, frame: &mut Frame) {
         let chunks = self.get_layout_chunks(frame.area());
-        if self.show_tilte_footer {
+        if self.show_title_footer {
             self.render_title(frame, chunks[0]);
         }
 
-        let index = if self.show_tilte_footer { 1 } else { 0 };
+        let index = if self.show_title_footer { 1 } else { 0 };
         // middle area: split into left TOC, content, and optionally bookmark
         let middle_chunks = if self.show_bookmark_menu {
             Layout::default()
@@ -217,13 +218,13 @@ impl App {
             self.render_bookmark_menu(frame, middle_chunks[2]);
         }
 
-        if self.show_tilte_footer {
+        if self.show_title_footer {
             self.render_footer(frame, chunks[2]);
         }
     }
 
     fn get_layout_chunks(&self, area: Rect) -> Vec<Rect> {
-        if !self.show_tilte_footer {
+        if !self.show_title_footer {
             Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([Constraint::Min(1)].as_ref())
@@ -291,7 +292,7 @@ impl App {
         };
 
         // highlight style depends on focus
-        let highlight_style = if self.focus != Focus::Toc {
+        let highlight_style = if self.focus == Focus::Content {
             Style::default()
                 .fg(Color::Black)
                 .bg(Color::White)
@@ -320,11 +321,13 @@ impl App {
             vec![ListItem::new("NONE")]
         };
 
-        let toc_highlight = {
+        let toc_highlight = if self.focus == Focus::Toc {
             Style::default()
                 .fg(Color::Black)
                 .bg(Color::LightGreen)
                 .add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(Color::Gray)
         };
 
         let list = List::new(items)
@@ -434,23 +437,27 @@ impl App {
         }
     }
 
-    fn handle_crossterm_event(&mut self) {
-        match event::read() {
-            Ok(Event::Key(key_event)) => match key_event.code {
-                KeyCode::Char('q') => self.running = false,
-                KeyCode::Char('c') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
-                    self.running = false
+    fn handle_event(&mut self, event: Event) {
+        match event {
+            Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
+                match key_event.code {
+                    KeyCode::Char('q') => self.running = false,
+
+                    KeyCode::Char('c') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
+                        self.running = false
+                    }
+
+                    KeyCode::Char('b') => self.toggle_bookmark_menu(),
+                    KeyCode::Char('s') => self.show_title_footer = !self.show_title_footer,
+                    KeyCode::Char('m') => self.toggle_bookmark_at_current_line(),
+                    KeyCode::Char('h') | KeyCode::Left => self.switch_focus_left(),
+                    KeyCode::Char('l') | KeyCode::Right => self.switch_focus_right(),
+                    KeyCode::Char('k') | KeyCode::Up => self.handle_move_up(),
+                    KeyCode::Char('j') | KeyCode::Down => self.handle_move_down(),
+                    KeyCode::Enter => self.handle_enter(),
+                    _ => {}
                 }
-                KeyCode::Char('b') => self.toggle_bookmark_menu(),
-                KeyCode::Char('s') => self.show_tilte_footer = !self.show_tilte_footer,
-                KeyCode::Char('m') => self.toggle_bookmark_at_current_line(),
-                KeyCode::Char('h') | KeyCode::Left => self.switch_focus_left(),
-                KeyCode::Char('l') | KeyCode::Right => self.switch_focus_right(),
-                KeyCode::Char('k') | KeyCode::Up => self.handle_move_up(),
-                KeyCode::Char('j') | KeyCode::Down => self.handle_move_down(),
-                KeyCode::Enter => self.handle_enter(),
-                _ => {}
-            },
+            }
             _ => {}
         }
     }

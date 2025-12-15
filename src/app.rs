@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use crate::args::Options;
 use color_eyre::Result;
-use crossterm::event::{self, Event, KeyCode, KeyModifiers};
+use crossterm::event;
 use ratatui::{
     DefaultTerminal, Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -12,7 +12,9 @@ use ratatui::{
     widgets::*,
 };
 
-use crate::bookmark::{self, BOOKMARK_SYMBOL, Bookmark};
+use crate::input::{self, Action};
+
+use crate::bookmark::{self, Bookmark};
 use crate::chapter::{self, Chapter};
 use chardetng::EncodingDetector;
 use textwrap;
@@ -52,11 +54,25 @@ pub struct App {
     // whether to show bookmark menu
     show_bookmark_menu: bool,
     // whether to show title and footer
-    show_tilte_footer: bool,
+    show_title_footer: bool,
     // initial jump targets
     initial_bookmark_jump: Option<usize>,
     // new: initial chapter jump target
     initial_chapter_jump: Option<usize>,
+}
+
+fn toggle_bookmark_symbol_in_place(line: &mut String) {
+    let trimmed = line.trim_end();
+
+    if trimmed.ends_with(bookmark::BOOKMARK_SYMBOL) {
+        if let Some(pos) = trimmed.rfind(bookmark::BOOKMARK_SYMBOL) {
+            *line = trimmed[..pos].trim_end().to_string();
+        }
+        return;
+    }
+
+    *line = trimmed.to_string();
+    line.push_str(&format!(" {}", bookmark::BOOKMARK_SYMBOL));
 }
 
 impl App {
@@ -79,7 +95,7 @@ impl App {
             bookmarks: Vec::new(),
             bookmark_state: ListState::default(),
             show_bookmark_menu: false,
-            show_tilte_footer: true,
+            show_title_footer: true,
             initial_bookmark_jump: args.bookmark, // Store the bookmark index
             initial_chapter_jump: args.chapter,   // Store the chapter index
         }
@@ -188,11 +204,11 @@ impl App {
 
     fn render(&mut self, frame: &mut Frame) {
         let chunks = self.get_layout_chunks(frame.area());
-        if self.show_tilte_footer {
+        if self.show_title_footer {
             self.render_title(frame, chunks[0]);
         }
 
-        let index = if self.show_tilte_footer { 1 } else { 0 };
+        let index = if self.show_title_footer { 1 } else { 0 };
         // middle area: split into left TOC, content, and optionally bookmark
         let middle_chunks = if self.show_bookmark_menu {
             Layout::default()
@@ -217,13 +233,13 @@ impl App {
             self.render_bookmark_menu(frame, middle_chunks[2]);
         }
 
-        if self.show_tilte_footer {
+        if self.show_title_footer {
             self.render_footer(frame, chunks[2]);
         }
     }
 
     fn get_layout_chunks(&self, area: Rect) -> Vec<Rect> {
-        if !self.show_tilte_footer {
+        if !self.show_title_footer {
             Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([Constraint::Min(1)].as_ref())
@@ -435,23 +451,27 @@ impl App {
     }
 
     fn handle_crossterm_event(&mut self) {
-        match event::read() {
-            Ok(Event::Key(key_event)) => match key_event.code {
-                KeyCode::Char('q') => self.running = false,
-                KeyCode::Char('c') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
-                    self.running = false
-                }
-                KeyCode::Char('b') => self.toggle_bookmark_menu(),
-                KeyCode::Char('s') => self.show_tilte_footer = !self.show_tilte_footer,
-                KeyCode::Char('m') => self.toggle_bookmark_at_current_line(),
-                KeyCode::Char('h') | KeyCode::Left => self.switch_focus_left(),
-                KeyCode::Char('l') | KeyCode::Right => self.switch_focus_right(),
-                KeyCode::Char('k') | KeyCode::Up => self.handle_move_up(),
-                KeyCode::Char('j') | KeyCode::Down => self.handle_move_down(),
-                KeyCode::Enter => self.handle_enter(),
-                _ => {}
-            },
-            _ => {}
+        let ev = match event::read() {
+            Ok(ev) => ev,
+            Err(_) => return,
+        };
+
+        let action = input::action_from_event(ev);
+        self.dispatch_action(action);
+    }
+
+    fn dispatch_action(&mut self, action: Action) {
+        match action {
+            Action::Quit => self.running = false,
+            Action::ToggleBookmarkMenu => self.toggle_bookmark_menu(),
+            Action::ToggleTitleFooter => self.show_title_footer = !self.show_title_footer,
+            Action::ToggleBookmarkAtCursor => self.toggle_bookmark_at_current_line(),
+            Action::FocusLeft => self.switch_focus_left(),
+            Action::FocusRight => self.switch_focus_right(),
+            Action::MoveUp => self.handle_move_up(),
+            Action::MoveDown => self.handle_move_down(),
+            Action::Enter => self.handle_enter(),
+            Action::None => {}
         }
     }
 
@@ -608,65 +628,86 @@ impl App {
             return;
         }
 
-        if let (Some(chapter_idx), Some(line_idx_in_view)) =
-            (self.toc_state.selected(), self.content_state.selected())
-        {
-            // Get immutable info before mutable borrow
-            let chapter_start_line = match self.chapters.get(chapter_idx) {
-                Some(c) => c.start_line,
-                None => return, // Chapter not found, should not happen
-            };
+        let Some(chapter_idx) = self.toc_state.selected() else {
+            return;
+        };
+        let Some(line_idx_in_view) = self.content_state.selected() else {
+            return;
+        };
 
-            if let Some(chapter) = self.chapters.get_mut(chapter_idx) {
-                if let Some(line) = chapter.content.get_mut(line_idx_in_view) {
-                    if line.trim().is_empty() {
-                        return; // Don't bookmark empty lines
-                    }
+        let Some(chapter_start_line) = self.chapter_start_line(chapter_idx) else {
+            return;
+        };
 
-                    if line.trim().ends_with(BOOKMARK_SYMBOL) {
-                        // Bookmarked: remove the symbol from the end
-                        if let Some(pos) = line.rfind(BOOKMARK_SYMBOL) {
-                            let new_line = &line[..pos];
-                            *line = new_line.trim_end().to_string();
-                        }
-                    } else {
-                        // Not bookmarked: add symbol to the end
-                        *line = line.trim_end().to_string();
-                        line.push_str(&format!(" {}", BOOKMARK_SYMBOL));
-                    }
+        let Some(line) = self.chapter_line_mut(chapter_idx, line_idx_in_view) else {
+            return;
+        };
 
-                    if let Some(view_line) = self.view_lines.get_mut(line_idx_in_view) {
-                        *view_line = line.clone();
-                    }
+        if line.trim().is_empty() {
+            return;
+        }
 
-                    // Update the line in the full file content (self.lines)
-                    let global_line_idx = chapter_start_line + line_idx_in_view;
-                    if let Some(global_line) = self.lines.get_mut(global_line_idx) {
-                        *global_line = line.clone();
-                    }
+        toggle_bookmark_symbol_in_place(line);
+        let updated_line = line.clone();
 
-                    // Re-parse bookmarks
-                    self.bookmarks = bookmark::parse_bookmarks(&self.chapters);
-                    if self.bookmark_state.selected().is_none() && !self.bookmarks.is_empty() {
-                        self.bookmark_state.select(Some(0));
-                    } else if let Some(selected) = self.bookmark_state.selected() {
-                        if selected >= self.bookmarks.len() {
-                            self.bookmark_state.select(if self.bookmarks.is_empty() {
-                                None
-                            } else {
-                                Some(self.bookmarks.len() - 1)
-                            });
-                        }
-                    }
+        self.sync_line_to_views(chapter_start_line, line_idx_in_view, &updated_line);
+        self.refresh_bookmarks_after_toggle();
+        self.persist_file_best_effort();
+    }
 
-                    // Persist changes to disk
-                    if self.save_file().is_err() {
-                        // In a real app, we'd want to handle this error, maybe show a message
-                        // pritnf error to stderr
-                        eprintln!("Error saving file after toggling bookmark.");
-                    }
-                }
-            }
+    fn chapter_start_line(&self, chapter_idx: usize) -> Option<usize> {
+        self.chapters.get(chapter_idx).map(|c| c.start_line)
+    }
+
+    fn chapter_line_mut(
+        &mut self,
+        chapter_idx: usize,
+        line_idx_in_view: usize,
+    ) -> Option<&mut String> {
+        self.chapters
+            .get_mut(chapter_idx)
+            .and_then(|ch| ch.content.get_mut(line_idx_in_view))
+    }
+
+    fn sync_line_to_views(
+        &mut self,
+        chapter_start_line: usize,
+        line_idx_in_view: usize,
+        line: &str,
+    ) {
+        if let Some(view_line) = self.view_lines.get_mut(line_idx_in_view) {
+            *view_line = line.to_string();
+        }
+
+        let global_line_idx = chapter_start_line + line_idx_in_view;
+        if let Some(global_line) = self.lines.get_mut(global_line_idx) {
+            *global_line = line.to_string();
+        }
+    }
+
+    fn refresh_bookmarks_after_toggle(&mut self) {
+        self.bookmarks = bookmark::parse_bookmarks(&self.chapters);
+
+        if self.bookmarks.is_empty() {
+            self.bookmark_state.select(None);
+            return;
+        }
+
+        if self.bookmark_state.selected().is_none() {
+            self.bookmark_state.select(Some(0));
+            return;
+        }
+
+        let selected = self.bookmark_state.selected().unwrap_or(0);
+        if selected >= self.bookmarks.len() {
+            self.bookmark_state
+                .select(Some(self.bookmarks.len().saturating_sub(1)));
+        }
+    }
+
+    fn persist_file_best_effort(&self) {
+        if self.save_file().is_err() {
+            eprintln!("Error saving file after toggling bookmark.");
         }
     }
 

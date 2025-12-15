@@ -307,7 +307,7 @@ impl App {
         };
 
         // highlight style depends on focus
-        let highlight_style = if self.focus != Focus::Toc {
+        let highlight_style = if self.focus == Focus::Content {
             Style::default()
                 .fg(Color::Black)
                 .bg(Color::White)
@@ -336,11 +336,13 @@ impl App {
             vec![ListItem::new("NONE")]
         };
 
-        let toc_highlight = {
+        let toc_highlight = if self.focus == Focus::Toc {
             Style::default()
                 .fg(Color::Black)
                 .bg(Color::LightGreen)
                 .add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(Color::Gray)
         };
 
         let list = List::new(items)

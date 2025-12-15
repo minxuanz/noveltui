@@ -562,6 +562,7 @@ dependencies = [
  "encoding_rs",
  "ratatui",
  "regex",
+ "signal-hook",
  "textwrap",
 ]
 

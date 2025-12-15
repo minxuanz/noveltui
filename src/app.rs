@@ -13,6 +13,8 @@ use ratatui::{
 };
 
 use crate::input::{self, Action};
+use crossterm::cursor::Show;
+use crossterm::terminal::LeaveAlternateScreen;
 
 use crate::bookmark::{self, Bookmark};
 use crate::chapter::{self, Chapter};
@@ -59,6 +61,8 @@ pub struct App {
     initial_bookmark_jump: Option<usize>,
     // new: initial chapter jump target
     initial_chapter_jump: Option<usize>,
+    // new: flag to indicate terminal needs re-initialization
+    reinit_terminal: bool,
 }
 
 fn toggle_bookmark_symbol_in_place(line: &mut String) {
@@ -98,6 +102,7 @@ impl App {
             show_title_footer: true,
             initial_bookmark_jump: args.bookmark, // Store the bookmark index
             initial_chapter_jump: args.chapter,   // Store the chapter index
+            reinit_terminal: false,               // Initialize the new flag
         }
     }
 
@@ -149,14 +154,22 @@ impl App {
         self.running = true;
 
         // Call the new method to handle initial jumps
-        self.handle_initial_jumps()?; // New line: call the extracted logic
+        self.handle_initial_jumps()?;
 
         while self.running {
+            if self.reinit_terminal {
+                // If a suspend/resume cycle occurred, re-initialize the terminal
+                // This re-assigns the `terminal` variable that `run` holds.
+                terminal = ratatui::init();
+                self.reinit_terminal = false; // Reset the flag
+            }
+
             terminal.draw(|f| {
                 self.render(f);
             })?;
             self.handle_crossterm_event();
         }
+
         Ok(())
     }
 
@@ -248,14 +261,11 @@ impl App {
         } else {
             Layout::default()
                 .direction(Direction::Vertical)
-                .constraints(
-                    [
-                        Constraint::Length(1),
-                        Constraint::Min(1),
-                        Constraint::Length(1),
-                    ]
-                    .as_ref(),
-                )
+                .constraints([
+                    Constraint::Length(1),
+                    Constraint::Min(1),
+                    Constraint::Length(1),
+                ])
                 .split(area)
                 .to_vec()
         }
@@ -465,6 +475,7 @@ impl App {
     fn dispatch_action(&mut self, action: Action) {
         match action {
             Action::Quit => self.running = false,
+            Action::Suspend => self.suspend_app(), // Call suspend_app without passing terminal
             Action::ToggleBookmarkMenu => self.toggle_bookmark_menu(),
             Action::ToggleTitleFooter => self.show_title_footer = !self.show_title_footer,
             Action::ToggleBookmarkAtCursor => self.toggle_bookmark_at_current_line(),
@@ -475,6 +486,24 @@ impl App {
             Action::Enter => self.handle_enter(),
             Action::None => {}
         }
+    }
+
+    fn suspend_app(&mut self) {
+        // Restore terminal before suspending
+        ratatui::restore();
+        // show cursor
+        let _ = crossterm::execute!(std::io::stdout(), Show, LeaveAlternateScreen);
+
+        // Suspend the process
+        #[cfg(unix)]
+        {
+            use signal_hook::consts::signal::SIGTSTP;
+            use signal_hook::low_level::raise;
+
+            raise(SIGTSTP).expect("Failed to suspend the process");
+        }
+
+        self.reinit_terminal = true;
     }
 
     fn switch_focus_left(&mut self) {

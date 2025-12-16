@@ -13,6 +13,7 @@ pub enum Action {
     MoveUp,
     MoveDown,
     Enter,
+    AutoScroll,
     None,
 }
 
@@ -45,6 +46,7 @@ fn action_from_key_event(key: KeyEvent) -> Action {
         KeyCode::Char('k') | KeyCode::Up => Action::MoveUp,
         KeyCode::Char('j') | KeyCode::Down => Action::MoveDown,
         KeyCode::Enter => Action::Enter,
+        KeyCode::Char(' ') => Action::AutoScroll,
         _ => Action::None,
     }
 }

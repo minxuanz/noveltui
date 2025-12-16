@@ -1,5 +1,6 @@
-use std::fs;
+use std::{fs};
 use std::path::PathBuf;
+use std::time::{Duration, Instant}; // Added Duration and Instant for non-blocking timing
 
 use crate::args::Options;
 use color_eyre::Result;
@@ -29,7 +30,6 @@ pub enum Focus {
     Bookmark,
 }
 
-#[derive(Debug, Default)]
 pub struct App {
     // state
     running: bool,
@@ -63,6 +63,12 @@ pub struct App {
     initial_chapter_jump: Option<usize>,
     // new: flag to indicate terminal needs re-initialization
     reinit_terminal: bool,
+    // start or stop auto-scroll
+    auto_scroll: bool,
+    // auto-scroll speed control
+    auto_scroll_speed: u64,
+    // track last auto-scroll time
+    last_auto_scroll_time: std::time::Instant,
 }
 
 fn toggle_bookmark_symbol_in_place(line: &mut String) {
@@ -103,7 +109,14 @@ impl App {
             initial_bookmark_jump: args.bookmark, // Store the bookmark index
             initial_chapter_jump: args.chapter,   // Store the chapter index
             reinit_terminal: false,               // Initialize the new flag
+            auto_scroll: false,
+            auto_scroll_speed: 1500,               // Default 200ms delay between scrolls
+            last_auto_scroll_time: std::time::Instant::now(),
         }
+    }
+
+    fn get_bookmarks(&self) -> &Vec<Bookmark> {
+        &self.bookmarks
     }
 
     fn load_file(&mut self) -> Result<()> {
@@ -156,20 +169,57 @@ impl App {
         // Call the new method to handle initial jumps
         self.handle_initial_jumps()?;
 
+        // Ensure `last_auto_scroll_time` is initialized before the loop starts
+        self.last_auto_scroll_time = Instant::now();
+
         while self.running {
             if self.reinit_terminal {
                 // If a suspend/resume cycle occurred, re-initialize the terminal
                 // This re-assigns the `terminal` variable that `run` holds.
-                terminal = ratatui::init();
+                terminal = ratatui::init(); // Use '?' for error propagation
                 self.reinit_terminal = false; // Reset the flag
             }
 
+            self.handle_events_and_auto_scroll()?; // Call the new function here
+
+            // Always redraw the terminal
             terminal.draw(|f| {
                 self.render(f);
             })?;
+        }
+
+        Ok(())
+    }
+
+    // New private method to handle event polling and auto-scrolling
+    fn handle_events_and_auto_scroll(&mut self) -> Result<()> {
+        // Calculate the duration to wait for an event, considering auto-scroll speed
+        let event_poll_timeout = if self.auto_scroll && self.focus == Focus::Content {
+            let elapsed = self.last_auto_scroll_time.elapsed();
+            let scroll_interval = Duration::from_millis(self.auto_scroll_speed);
+
+            if elapsed >= scroll_interval {
+                Duration::ZERO // If interval passed, process immediately
+            } else {
+                scroll_interval.saturating_sub(elapsed) // Wait for the remaining time
+            }
+        } else {
+            Duration::from_millis(250) // Default poll timeout when not auto-scrolling (e.g., 4 FPS)
+        };
+
+        // Poll for crossterm events with a timeout
+        if event::poll(event_poll_timeout)? { // Use event::poll
             self.handle_crossterm_event();
         }
 
+        // Handle auto-scroll if enabled and focused on content, and enough time has passed
+        if self.auto_scroll && self.focus == Focus::Content {
+            let now = Instant::now();
+            if now.duration_since(self.last_auto_scroll_time).as_millis() >= self.auto_scroll_speed as u128 {
+                self.handle_move_down(); // Perform the scroll
+                self.last_auto_scroll_time = now; // Reset timer
+            }
+        }
         Ok(())
     }
 
@@ -475,7 +525,12 @@ impl App {
     fn dispatch_action(&mut self, action: Action) {
         match action {
             Action::Quit => self.running = false,
-            Action::Suspend => self.suspend_app(), // Call suspend_app without passing terminal
+            Action::Suspend => {
+                if let Err(e) = self.suspend_app() { // Handle Result of suspend_app
+                    eprintln!("Error suspending app: {}", e);
+                    // Decide how to handle this error, e.g., self.running = false;
+                }
+            },
             Action::ToggleBookmarkMenu => self.toggle_bookmark_menu(),
             Action::ToggleTitleFooter => self.show_title_footer = !self.show_title_footer,
             Action::ToggleBookmarkAtCursor => self.toggle_bookmark_at_current_line(),
@@ -484,15 +539,18 @@ impl App {
             Action::MoveUp => self.handle_move_up(),
             Action::MoveDown => self.handle_move_down(),
             Action::Enter => self.handle_enter(),
+            Action::AutoScroll => {
+                self.auto_scroll = !self.auto_scroll;
+            }
             Action::None => {}
         }
     }
 
-    fn suspend_app(&mut self) {
+    fn suspend_app(&mut self) -> Result<()> { // Changed signature to return Result
         // Restore terminal before suspending
         ratatui::restore();
         // show cursor
-        let _ = crossterm::execute!(std::io::stdout(), Show, LeaveAlternateScreen);
+        crossterm::execute!(std::io::stdout(), Show, LeaveAlternateScreen)?; // Use '?' for error propagation
 
         // Suspend the process
         #[cfg(unix)]
@@ -504,6 +562,7 @@ impl App {
         }
 
         self.reinit_terminal = true;
+        Ok(()) // Add Ok(())
     }
 
     fn switch_focus_left(&mut self) {

@@ -31,8 +31,3 @@ pub fn parse_bookmarks(chapters: &Vec<Chapter>) -> Vec<Bookmark> {
     }
     bookmarks
 }
-
-pub fn show_bookmark_menu() {
-    // Placeholder for bookmark menu display logic
-    println!("Bookmark menu is not yet implemented.");
-}

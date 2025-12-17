@@ -1,6 +1,6 @@
-use std::{fs};
+use std::fs;
 use std::path::PathBuf;
-use std::time::{Duration, Instant}; // Added Duration and Instant for non-blocking timing
+use std::time::{Duration, Instant};
 
 use crate::args::Options;
 use color_eyre::Result;
@@ -56,7 +56,7 @@ pub struct App {
     // whether to show bookmark menu
     show_bookmark_menu: bool,
     // whether to show title and footer
-    show_title_footer: bool,
+    show_title: bool,
     // initial jump targets
     initial_bookmark_jump: Option<usize>,
     // new: initial chapter jump target
@@ -66,7 +66,7 @@ pub struct App {
     // start or stop auto-scroll
     auto_scroll: bool,
     // auto-scroll speed control
-    auto_scroll_speed: u64,
+    auto_scroll_speed: f64,
     // track last auto-scroll time
     last_auto_scroll_time: std::time::Instant,
 }
@@ -105,21 +105,23 @@ impl App {
             bookmarks: Vec::new(),
             bookmark_state: ListState::default(),
             show_bookmark_menu: false,
-            show_title_footer: true,
-            initial_bookmark_jump: args.bookmark, // Store the bookmark index
-            initial_chapter_jump: args.chapter,   // Store the chapter index
-            reinit_terminal: false,               // Initialize the new flag
+            show_title: args.simple_mode == false, // Set based on simple_mode flag
+            initial_bookmark_jump: args.bookmark,  // Store the bookmark index
+            initial_chapter_jump: args.chapter,    // Store the chapter index
+            reinit_terminal: false,                // Initialize the new flag
             auto_scroll: false,
-            auto_scroll_speed: 1500,               // Default 200ms delay between scrolls
+            auto_scroll_speed: args.speed*1000.0,  // Default speed delay between scrolls
             last_auto_scroll_time: std::time::Instant::now(),
         }
     }
 
-    fn get_bookmarks(&self) -> &Vec<Bookmark> {
-        &self.bookmarks
+    // Getter for file_path
+    pub fn file_path(&self) -> &PathBuf {
+        &self.file_path
     }
 
-    fn load_file(&mut self) -> Result<()> {
+    // Public function to load file and parse bookmarks (used by both TUI and show-bookmark mode)
+    pub fn load_file_and_get_bookmarks(&self) -> Result<(Vec<String>, Vec<Chapter>, Vec<Bookmark>)> {
         // Try reading as UTF-8 first
         let content = match fs::read_to_string(&self.file_path) {
             Ok(s) => s,
@@ -129,10 +131,19 @@ impl App {
                 Self::decode_with_auto_detect(&bytes)
             }
         };
-        self.lines = content.lines().map(|s| s.to_string()).collect();
-        // parse chapters from lines
-        self.chapters = chapter::parse_lines(&self.lines);
-        self.bookmarks = bookmark::parse_bookmarks(&self.chapters);
+        let lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
+        let chapters = chapter::parse_lines(&lines);
+        let bookmarks = bookmark::parse_bookmarks(&chapters);
+        Ok((lines, chapters, bookmarks))
+    }
+
+    fn load_file(&mut self) -> Result<()> {
+        self.load_file_and_get_bookmarks().map(|(lines, chapters, bookmarks)| {
+            self.lines = lines;
+            self.chapters = chapters;
+            self.bookmarks = bookmarks;
+        })?;
+
         if !self.bookmarks.is_empty() {
             self.bookmark_state.select(Some(0));
         }
@@ -153,7 +164,7 @@ impl App {
         Ok(())
     }
 
-    // helper
+    // decode with auto-detected encoding
     fn decode_with_auto_detect(bytes: &[u8]) -> String {
         let mut det = EncodingDetector::new();
         det.feed(bytes, true);
@@ -175,12 +186,11 @@ impl App {
         while self.running {
             if self.reinit_terminal {
                 // If a suspend/resume cycle occurred, re-initialize the terminal
-                // This re-assigns the `terminal` variable that `run` holds.
-                terminal = ratatui::init(); // Use '?' for error propagation
-                self.reinit_terminal = false; // Reset the flag
+                terminal = ratatui::init();
+                self.reinit_terminal = false;
             }
 
-            self.handle_events_and_auto_scroll()?; // Call the new function here
+            self.handle_events_and_auto_scroll()?;
 
             // Always redraw the terminal
             terminal.draw(|f| {
@@ -196,7 +206,7 @@ impl App {
         // Calculate the duration to wait for an event, considering auto-scroll speed
         let event_poll_timeout = if self.auto_scroll && self.focus == Focus::Content {
             let elapsed = self.last_auto_scroll_time.elapsed();
-            let scroll_interval = Duration::from_millis(self.auto_scroll_speed);
+            let scroll_interval = Duration::from_millis(self.auto_scroll_speed as u64);
 
             if elapsed >= scroll_interval {
                 Duration::ZERO // If interval passed, process immediately
@@ -231,9 +241,10 @@ impl App {
         ) {
             (Some(chapter_idx), None) => {
                 // 处理章节跳转
-                if chapter_idx < self.chapters.len() {
-                    self.select_chapter(chapter_idx.saturating_sub(1));
-                    self.focus = Focus::Content; // 跳转后聚焦内容区
+                // must have intro
+                if chapter_idx <= self.chapters.len() {
+                    self.select_chapter(chapter_idx);
+                    self.focus = Focus::Content; 
                 } else {
                     return Err(color_eyre::eyre::eyre!(
                         "Only have {} Chapter(s). Cannot jump to chapter {}.",
@@ -244,7 +255,7 @@ impl App {
             }
             (None, Some(bookmark_idx)) => {
                 // 处理书签跳转
-                if bookmark_idx < self.bookmarks.len() {
+                if bookmark_idx <= self.bookmarks.len() {
                     self.bookmark_state
                         .select(Some(bookmark_idx.saturating_sub(1)));
                     self.jump_to_selected_bookmark();
@@ -267,11 +278,11 @@ impl App {
 
     fn render(&mut self, frame: &mut Frame) {
         let chunks = self.get_layout_chunks(frame.area());
-        if self.show_title_footer {
+        if self.show_title {
             self.render_title(frame, chunks[0]);
         }
 
-        let index = if self.show_title_footer { 1 } else { 0 };
+        let index = if self.show_title { 1 } else { 0 };
         // middle area: split into left TOC, content, and optionally bookmark
         let middle_chunks = if self.show_bookmark_menu {
             Layout::default()
@@ -296,13 +307,13 @@ impl App {
             self.render_bookmark_menu(frame, middle_chunks[2]);
         }
 
-        if self.show_title_footer {
+        if self.show_title {
             self.render_footer(frame, chunks[2]);
         }
     }
 
     fn get_layout_chunks(&self, area: Rect) -> Vec<Rect> {
-        if !self.show_title_footer {
+        if !self.show_title {
             Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([Constraint::Min(1)].as_ref())
@@ -335,10 +346,16 @@ impl App {
 
     fn render_content(&mut self, frame: &mut Frame, area: Rect) {
         // render content as a stateful List so we can highlight current line
-        let block = Block::default()
-            .borders(Borders::ALL)
-            .border_type(BorderType::Rounded)
-            .title("Content");
+        let block = if !self.show_title {
+            Block::default()
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded)
+        } else {
+            Block::default()
+                .title("Content")
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded)
+        };
 
         // compute available inner width for wrapping (leave 5 for borders)
         let inner_width = area.width.saturating_sub(5) as usize;
@@ -404,15 +421,25 @@ impl App {
         } else {
             Style::default().fg(Color::Gray)
         };
-
-        let list = List::new(items)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .border_type(BorderType::Rounded)
-                    .title("TOC"),
-            )
-            .highlight_style(toc_highlight);
+        
+        let list = if !self.show_title {
+            List::new(items)
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .border_type(BorderType::Rounded),
+                )
+                .highlight_style(toc_highlight)
+        } else {
+            List::new(items)
+                .block(
+                    Block::default()
+                        .title("TOC")
+                        .borders(Borders::ALL)
+                        .border_type(BorderType::Rounded),
+                )
+                .highlight_style(toc_highlight)
+        };
 
         frame.render_stateful_widget(list, area, &mut self.toc_state);
     }
@@ -532,7 +559,7 @@ impl App {
                 }
             },
             Action::ToggleBookmarkMenu => self.toggle_bookmark_menu(),
-            Action::ToggleTitleFooter => self.show_title_footer = !self.show_title_footer,
+            Action::ToggleTitleFooter => self.show_title = !self.show_title,
             Action::ToggleBookmarkAtCursor => self.toggle_bookmark_at_current_line(),
             Action::FocusLeft => self.switch_focus_left(),
             Action::FocusRight => self.switch_focus_right(),
@@ -546,11 +573,11 @@ impl App {
         }
     }
 
-    fn suspend_app(&mut self) -> Result<()> { // Changed signature to return Result
+    fn suspend_app(&mut self) -> Result<()> { 
         // Restore terminal before suspending
         ratatui::restore();
-        // show cursor
-        crossterm::execute!(std::io::stdout(), Show, LeaveAlternateScreen)?; // Use '?' for error propagation
+        // Show cursor
+        crossterm::execute!(std::io::stdout(), Show, LeaveAlternateScreen)?;
 
         // Suspend the process
         #[cfg(unix)]
@@ -562,7 +589,7 @@ impl App {
         }
 
         self.reinit_terminal = true;
-        Ok(()) // Add Ok(())
+        Ok(())
     }
 
     fn switch_focus_left(&mut self) {
@@ -583,7 +610,7 @@ impl App {
         self.focus = match self.focus {
             Focus::Toc => Focus::Content,
             // if bookmark menu is shown, switch to it
-            // if not,go to TOC
+            // if not, go to TOC
             Focus::Content => {
                 if self.show_bookmark_menu {
                     self.jump_to_selected_bookmark();

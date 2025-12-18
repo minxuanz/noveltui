@@ -57,6 +57,8 @@ pub struct App {
     show_bookmark_menu: bool,
     // whether to show title and footer
     show_title: bool,
+    // whether to show help
+    show_help: bool,
     // initial jump targets
     initial_bookmark_jump: Option<usize>,
     // new: initial chapter jump target
@@ -116,6 +118,7 @@ impl App {
             bookmark_state: ListState::default(),
             show_bookmark_menu: false,
             show_title: args.simple_mode == false, // Set based on simple_mode flag
+            show_help: false,
             initial_bookmark_jump: args.bookmark,  // Store the bookmark index
             initial_chapter_jump: args.chapter,    // Store the chapter index
             reinit_terminal: false,                // Initialize the new flag
@@ -330,28 +333,58 @@ impl App {
             self.render_bookmark_menu(frame, middle_chunks[2]);
         }
 
-        if self.show_title {
-            self.render_footer(frame, chunks[2]);
+        match (self.show_title, self.show_help) {
+            (false, false) => {}
+            (true, false) => {
+                self.render_footer(frame, chunks[2]);
+            }
+            (true, true) => {
+                self.render_footer(frame, chunks[2]);
+                self.render_help(frame, chunks[3]);
+            }
+            (false, true) => {}
         }
+        // if self.show_title {
+        //     self.render_footer(frame, chunks[2]);
+        // }
+
+        // if self.show_help {
+        //     self.render_help(frame, chunks[3]);
+        // }
     }
 
     fn get_layout_chunks(&self, area: Rect) -> Vec<Rect> {
-        if !self.show_title {
-            Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([Constraint::Min(1)].as_ref())
-                .split(area)
-                .to_vec()
-        } else {
-            Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([
-                    Constraint::Length(1),
-                    Constraint::Min(1),
-                    Constraint::Length(1),
-                ])
-                .split(area)
-                .to_vec()
+        match (self.show_title, self.show_help) {
+            (false, false) | (false, true) => {
+                Layout::default()
+                    .direction(Direction::Vertical)
+                    .constraints([Constraint::Min(1)].as_ref())
+                    .split(area)
+                    .to_vec()
+            }
+            (true, false) => {
+                Layout::default()
+                    .direction(Direction::Vertical)
+                    .constraints([
+                        Constraint::Length(1),
+                        Constraint::Min(1),
+                        Constraint::Length(1),
+                    ])
+                    .split(area)
+                    .to_vec()
+            }
+            (true, true) => {
+                Layout::default()
+                    .direction(Direction::Vertical)
+                    .constraints([
+                        Constraint::Length(1),
+                        Constraint::Min(1),
+                        Constraint::Length(1),
+                        Constraint::Length(6), // Help panel height
+                    ])
+                    .split(area)
+                    .to_vec()
+            }
         }
     }
 
@@ -523,7 +556,7 @@ impl App {
 
         let left = Paragraph::new(format!("{} {}", focus_label, chapter_info))
             .alignment(Alignment::Left)
-            .style(Style::default().fg(Color::LightCyan));
+            .style(Style::default().fg(Color::White));
         frame.render_widget(left, cols[0]);
 
         let total_lines = self.lines.len();
@@ -536,10 +569,8 @@ impl App {
             .chapters
             .get(self.toc_state.selected().unwrap_or(0))
             .map_or(0, |chapter| chapter.start_line + selected_line_in_view);
-        let progress_indicator = format!(
-            "{}/{} [m]Toggle Mark [M]Clear All [b]Bookmark",
-            global_line_number, total_lines
-        );
+
+        let progress_indicator = format!("{}/{} [?] Help",  global_line_number, total_lines);
         //let hints = "[q]Quit [b]Bookmark [m]Toggle Mark | [h/←]Left [l/→]Right | [j/↓]Down [k/↑]Up";
         let right = Paragraph::new(progress_indicator)
             .alignment(Alignment::Right)
@@ -597,6 +628,9 @@ impl App {
             Action::Enter => self.handle_enter(),
             Action::AutoScroll => {
                 self.auto_scroll = !self.auto_scroll;
+            }
+            Action::ToggleHelp => {
+                self.show_help = !self.show_help;
             }
             Action::None => {}
         }
@@ -918,6 +952,29 @@ impl App {
 
         // save
         self.persist_file_best_effort();
+    }
+
+    fn render_help(&self, frame: &mut Frame, area: Rect) {
+        // Create horizontal layout for shortcuts
+        let help_content = vec![
+            "                                                                        ",
+            " k/↑  Up       q  Quit                        Space  Auto Scroll",
+            " j/↓  Down     Q  Mark & Quit                 s      Toggle Title/Footer",
+            " h/←  Left     m  Toggle Mark(Content)        b      Toggle Bookmark Menu",
+            " l/→  Right    M  Clear All Marks(Bookmark)",
+        ];
+
+        let help_text = help_content.join("\n");
+
+        let paragraph = Paragraph::new(help_text)
+            .block(
+                Block::default()
+                    .borders(Borders::NONE),
+            )
+            .style(Style::default().fg(Color::DarkGray).bg(Color::Black))
+            .alignment(Alignment::Left);
+
+        frame.render_widget(paragraph, area);
     }
 
     fn save_file(&self) -> Result<()> {

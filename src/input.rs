@@ -10,6 +10,7 @@ pub enum Action {
     ToggleTitleFooter,
     ToggleBookmarkAtCursor,
     ClearAllBookmarks,
+    ToggleHelp,
     FocusLeft,
     FocusRight,
     MoveUp,
@@ -51,6 +52,7 @@ fn action_from_key_event(key: KeyEvent) -> Action {
         KeyCode::Char('j') | KeyCode::Down => Action::MoveDown,
         KeyCode::Enter => Action::Enter,
         KeyCode::Char(' ') => Action::AutoScroll,
+        KeyCode::Char('?') => Action::ToggleHelp,
         _ => Action::None,
     }
 }

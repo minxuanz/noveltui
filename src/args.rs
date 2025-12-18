@@ -27,5 +27,4 @@ pub struct Options {
     /// show bookmark menu
     #[arg(long)]
     pub show_bookmark: bool,
-
 }

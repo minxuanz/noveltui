@@ -16,9 +16,12 @@
 | Key         | Action        |
 |-------------|---------------|
 | `q`         | Quit          |
+|`Q`| Add bookmark and quit   |
 | `j` / `↓`   | Scroll Down   |
 | `k` / `↑`   | Scroll Up     |
 | `m`         | Add or delete Bookmark|
+|`M`          | Delete all bookmarks(must in Bookmark focns) |
+|`Space`      |  auto read mode  |
 | `b`         | Bookmark Menu |
 | `→` / `l`   | Switch Fcons Left  |
 | `←` / `h`   | Switch Fcons Right |

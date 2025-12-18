@@ -4,10 +4,12 @@ use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Action {
     Quit,
+    SaveAndQuit,
     Suspend,
     ToggleBookmarkMenu,
     ToggleTitleFooter,
     ToggleBookmarkAtCursor,
+    ClearAllBookmarks,
     FocusLeft,
     FocusRight,
     MoveUp,
@@ -38,9 +40,11 @@ fn action_from_key_event(key: KeyEvent) -> Action {
 
     match key.code {
         KeyCode::Char('q') => Action::Quit,
+        KeyCode::Char('Q') => Action::SaveAndQuit,
         KeyCode::Char('b') => Action::ToggleBookmarkMenu,
         KeyCode::Char('s') => Action::ToggleTitleFooter,
         KeyCode::Char('m') => Action::ToggleBookmarkAtCursor,
+        KeyCode::Char('M') => Action::ClearAllBookmarks,
         KeyCode::Char('h') | KeyCode::Left => Action::FocusLeft,
         KeyCode::Char('l') | KeyCode::Right => Action::FocusRight,
         KeyCode::Char('k') | KeyCode::Up => Action::MoveUp,

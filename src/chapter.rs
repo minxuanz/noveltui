@@ -15,7 +15,7 @@ pub fn parse_lines(lines: &[String]) -> Vec<Chapter> {
     let mut current: Option<Chapter> = None;
 
     let mut intro_chapter = Vec::new();
-    
+
     for (i, line) in lines.iter().enumerate() {
         let caps = re_cn.captures(line).or_else(|| re_en.captures(line));
         if let Some(caps) = caps {
@@ -25,7 +25,7 @@ pub fn parse_lines(lines: &[String]) -> Vec<Chapter> {
                 } else {
                     "intro".to_string()
                 };
-                
+
                 current = Some(Chapter {
                     number: 0,
                     title,
@@ -33,11 +33,11 @@ pub fn parse_lines(lines: &[String]) -> Vec<Chapter> {
                     content: intro_chapter.clone(),
                 });
             }
-            
+
             if let Some(prev) = current.take() {
                 chapters.push(prev);
             }
-            
+
             // 创建新的当前章节
             let num = caps
                 .get(1)
@@ -61,7 +61,7 @@ pub fn parse_lines(lines: &[String]) -> Vec<Chapter> {
                     format!("Chapter {} {}", num, rest)
                 }
             };
-            
+
             current = Some(Chapter {
                 number: num,
                 title,

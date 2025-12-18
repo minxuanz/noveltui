@@ -85,6 +85,16 @@ fn toggle_bookmark_symbol_in_place(line: &mut String) {
     line.push_str(&format!(" {}", bookmark::BOOKMARK_SYMBOL));
 }
 
+fn remove_bookmark_symbol_from_line(line: &mut String) {
+    let trimmed = line.trim_end();
+
+    if trimmed.ends_with(bookmark::BOOKMARK_SYMBOL) {
+        if let Some(pos) = trimmed.rfind(bookmark::BOOKMARK_SYMBOL) {
+            *line = trimmed[..pos].trim_end().to_string();
+        }
+    }
+}
+
 impl App {
     pub fn new(args: Options) -> Self {
         // Change signature to accept Options
@@ -110,7 +120,7 @@ impl App {
             initial_chapter_jump: args.chapter,    // Store the chapter index
             reinit_terminal: false,                // Initialize the new flag
             auto_scroll: false,
-            auto_scroll_speed: args.speed*1000.0,  // Default speed delay between scrolls
+            auto_scroll_speed: args.speed * 1000.0, // Default speed delay between scrolls
             last_auto_scroll_time: std::time::Instant::now(),
         }
     }
@@ -121,7 +131,9 @@ impl App {
     }
 
     // Public function to load file and parse bookmarks (used by both TUI and show-bookmark mode)
-    pub fn load_file_and_get_bookmarks(&self) -> Result<(Vec<String>, Vec<Chapter>, Vec<Bookmark>)> {
+    pub fn load_file_and_get_bookmarks(
+        &self,
+    ) -> Result<(Vec<String>, Vec<Chapter>, Vec<Bookmark>)> {
         // Try reading as UTF-8 first
         let content = match fs::read_to_string(&self.file_path) {
             Ok(s) => s,
@@ -138,11 +150,12 @@ impl App {
     }
 
     fn load_file(&mut self) -> Result<()> {
-        self.load_file_and_get_bookmarks().map(|(lines, chapters, bookmarks)| {
-            self.lines = lines;
-            self.chapters = chapters;
-            self.bookmarks = bookmarks;
-        })?;
+        self.load_file_and_get_bookmarks()
+            .map(|(lines, chapters, bookmarks)| {
+                self.lines = lines;
+                self.chapters = chapters;
+                self.bookmarks = bookmarks;
+            })?;
 
         if !self.bookmarks.is_empty() {
             self.bookmark_state.select(Some(0));
@@ -218,14 +231,17 @@ impl App {
         };
 
         // Poll for crossterm events with a timeout
-        if event::poll(event_poll_timeout)? { // Use event::poll
+        if event::poll(event_poll_timeout)? {
+            // Use event::poll
             self.handle_crossterm_event();
         }
 
         // Handle auto-scroll if enabled and focused on content, and enough time has passed
         if self.auto_scroll && self.focus == Focus::Content {
             let now = Instant::now();
-            if now.duration_since(self.last_auto_scroll_time).as_millis() >= self.auto_scroll_speed as u128 {
+            if now.duration_since(self.last_auto_scroll_time).as_millis()
+                >= self.auto_scroll_speed as u128
+            {
                 self.handle_move_down(); // Perform the scroll
                 self.last_auto_scroll_time = now; // Reset timer
             }
@@ -244,7 +260,7 @@ impl App {
                 // must have intro
                 if chapter_idx <= self.chapters.len() {
                     self.select_chapter(chapter_idx);
-                    self.focus = Focus::Content; 
+                    self.focus = Focus::Content;
                 } else {
                     return Err(color_eyre::eyre::eyre!(
                         "Only have {} Chapter(s). Cannot jump to chapter {}.",
@@ -254,12 +270,11 @@ impl App {
                 }
             }
             (None, Some(bookmark_idx)) => {
-                // 处理书签跳转
                 if bookmark_idx <= self.bookmarks.len() {
                     self.bookmark_state
                         .select(Some(bookmark_idx.saturating_sub(1)));
                     self.jump_to_selected_bookmark();
-                    self.focus = Focus::Content; // 跳转后聚焦内容区
+                    self.focus = Focus::Content;
                 } else {
                     return Err(color_eyre::eyre::eyre!(
                         "Only have {} Bookmark(s). Cannot jump to bookmark {}.",
@@ -268,7 +283,15 @@ impl App {
                     ));
                 }
             }
-            (None, None) => {}
+            (None, None) => {
+                // jump to last bookmark if exists
+                if !self.bookmarks.is_empty() {
+                    let last_idx = self.bookmarks.len() - 1;
+                    self.bookmark_state.select(Some(last_idx));
+                    self.jump_to_selected_bookmark();
+                    self.focus = Focus::Content;
+                }
+            }
             (Some(_), Some(_)) => {
                 unreachable!()
             }
@@ -421,7 +444,7 @@ impl App {
         } else {
             Style::default().fg(Color::Gray)
         };
-        
+
         let list = if !self.show_title {
             List::new(items)
                 .block(
@@ -514,7 +537,7 @@ impl App {
             .get(self.toc_state.selected().unwrap_or(0))
             .map_or(0, |chapter| chapter.start_line + selected_line_in_view);
         let progress_indicator = format!(
-            "{}/{} [m]Toggle Mark [b]Bookmark",
+            "{}/{} [m]Toggle Mark [M]Clear All [b]Bookmark",
             global_line_number, total_lines
         );
         //let hints = "[q]Quit [b]Bookmark [m]Toggle Mark | [h/←]Left [l/→]Right | [j/↓]Down [k/↑]Up";
@@ -552,15 +575,21 @@ impl App {
     fn dispatch_action(&mut self, action: Action) {
         match action {
             Action::Quit => self.running = false,
+            Action::SaveAndQuit => {
+                self.toggle_bookmark_at_current_line();
+                self.running = false;
+            }
             Action::Suspend => {
-                if let Err(e) = self.suspend_app() { // Handle Result of suspend_app
+                if let Err(e) = self.suspend_app() {
+                    // Handle Result of suspend_app
                     eprintln!("Error suspending app: {}", e);
                     // Decide how to handle this error, e.g., self.running = false;
                 }
-            },
+            }
             Action::ToggleBookmarkMenu => self.toggle_bookmark_menu(),
             Action::ToggleTitleFooter => self.show_title = !self.show_title,
             Action::ToggleBookmarkAtCursor => self.toggle_bookmark_at_current_line(),
+            Action::ClearAllBookmarks => self.clear_all_bookmarks(),
             Action::FocusLeft => self.switch_focus_left(),
             Action::FocusRight => self.switch_focus_right(),
             Action::MoveUp => self.handle_move_up(),
@@ -573,7 +602,7 @@ impl App {
         }
     }
 
-    fn suspend_app(&mut self) -> Result<()> { 
+    fn suspend_app(&mut self) -> Result<()> {
         // Restore terminal before suspending
         ratatui::restore();
         // Show cursor
@@ -853,6 +882,42 @@ impl App {
                 self.content_state.select(Some(bookmark.line_in_chapter));
             }
         }
+    }
+
+    fn clear_all_bookmarks(&mut self) {
+        if self.focus != Focus::Bookmark {
+            return;
+        }
+
+        if self.bookmarks.is_empty() {
+            return;
+        }
+
+        let mut lines_to_update = Vec::new();
+        for (chapter_idx, chapter) in self.chapters.iter().enumerate() {
+            for (line_idx_in_view, line) in chapter.content.iter().enumerate() {
+                if line.trim().ends_with(bookmark::BOOKMARK_SYMBOL) {
+                    if let Some(chapter_start_line) = chapter.start_line.checked_add(0) {
+                        lines_to_update.push((chapter_idx, line_idx_in_view, chapter_start_line));
+                    }
+                }
+            }
+        }
+
+        for (chapter_idx, line_idx_in_view, chapter_start_line) in lines_to_update {
+            // change line in chapter
+            if let Some(line) = self.chapter_line_mut(chapter_idx, line_idx_in_view) {
+                remove_bookmark_symbol_from_line(line);
+                let updated_line = line.clone();
+
+                self.sync_line_to_views(chapter_start_line, line_idx_in_view, &updated_line);
+            }
+        }
+
+        self.refresh_bookmarks_after_toggle();
+
+        // save
+        self.persist_file_best_effort();
     }
 
     fn save_file(&self) -> Result<()> {

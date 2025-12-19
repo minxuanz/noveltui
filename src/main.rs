@@ -10,11 +10,11 @@ fn main() -> Result<()> {
         let app = App::new(args);
         let (_, _, bookmarks) = app.load_file_and_get_bookmarks()?;
 
-        // Display bookmarks to stdout
         if bookmarks.is_empty() {
             println!("No bookmarks found in the file.");
         } else {
             println!("Bookmarks in {}:", app.file_path().display());
+
             for (i, bookmark) in bookmarks.iter().enumerate() {
                 println!("{}. {}", i + 1, bookmark.line_content);
             }

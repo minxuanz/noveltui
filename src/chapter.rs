@@ -1,4 +1,5 @@
 use regex::Regex;
+use std::sync::OnceLock;
 
 #[derive(Debug, Clone)]
 pub struct Chapter {
@@ -8,81 +9,88 @@ pub struct Chapter {
     pub content: Vec<String>,
 }
 
+// 1. 使用 OnceLock 全局缓存正则
+static RE_CN: OnceLock<Regex> = OnceLock::new();
+static RE_EN: OnceLock<Regex> = OnceLock::new();
+
 pub fn parse_lines(lines: &[String]) -> Vec<Chapter> {
-    let re_cn = Regex::new(r"^\s*第\s*(\d+)\s*章(?:\s*(.*))?$").unwrap();
-    let re_en = Regex::new(r"(?i)^\s*chapter\s*(\d+)\s*[:\.\s-]*\s*(.*)?$").unwrap();
+    let re_cn = RE_CN.get_or_init(|| {
+        // [0-9] 匹配阿拉伯数字
+        // [零一二三四五六七八九十百千两〇] 匹配常见中文数字
+        Regex::new(r"^\s*第\s*[0-9零一二三四五六七八九十百千两〇]+\s*章").unwrap()
+    });
+    let re_en = RE_EN.get_or_init(|| Regex::new(r"(?i)^\s*chapter\s*\d+").unwrap());
+
     let mut chapters: Vec<Chapter> = Vec::new();
     let mut current: Option<Chapter> = None;
-
-    let mut intro_chapter = Vec::new();
+    let mut intro_lines: Vec<String> = Vec::new();
 
     for (i, line) in lines.iter().enumerate() {
-        let caps = re_cn.captures(line).or_else(|| re_en.captures(line));
-        if let Some(caps) = caps {
-            if current.is_none() && !intro_chapter.is_empty() {
-                let title = if re_cn.is_match(line) {
-                    "简介".to_string()
-                } else {
-                    "intro".to_string()
-                };
+
+        let is_potential_header = if line.len() > 100 {
+            false
+        } else {
+            let trimmed = line.trim_start();
+            trimmed.starts_with('第')
+                || trimmed.starts_with("Chapter")
+                || trimmed.starts_with("CHAPTER")
+                || trimmed.starts_with("chapter")
+        };
+
+        let matched_cn = is_potential_header && re_cn.is_match(line);
+        let matched_en = !matched_cn && is_potential_header && re_en.is_match(line);
+
+        if matched_cn || matched_en {
+            // A. 处理 Intro
+            if current.is_none() && !intro_lines.is_empty() {
+                let intro_title = if matched_cn { "简介" } else { "Intro" };
+
+                // 使用 mem::take 直接拿走 intro_lines 的内容，避免 clone
+                let content = std::mem::take(&mut intro_lines);
 
                 current = Some(Chapter {
                     number: 0,
-                    title,
+                    title: intro_title.to_string(),
                     start_line: 0,
-                    content: intro_chapter.clone(),
+                    content,
                 });
             }
 
+            // B. 归档上一章
             if let Some(prev) = current.take() {
                 chapters.push(prev);
             }
 
-            // 创建新的当前章节
-            let num = caps
-                .get(1)
-                .and_then(|m| m.as_str().parse::<usize>().ok())
-                .unwrap_or(0);
-            let rest = caps
-                .get(2)
-                .map(|m| m.as_str().trim().to_string())
-                .unwrap_or_default();
-            let is_cn = re_cn.is_match(line);
-            let title = if rest.is_empty() {
-                if is_cn {
-                    format!("第{}章", num)
-                } else {
-                    format!("Chapter {}", num)
-                }
-            } else {
-                if is_cn {
-                    format!("第{}章 {}", num, rest)
-                } else {
-                    format!("Chapter {} {}", num, rest)
-                }
-            };
+            // C. 创建新章节
+            // 优化：直接读取标题行，不再解析捕获组
+            let title = line.trim().to_string();
+            let number = chapters.len() + 1; // 简单的计数逻辑，如果 Intro 存在则 Intro 是 0
 
             current = Some(Chapter {
-                number: num,
+                number,
                 title,
                 start_line: i,
                 content: vec![line.clone()],
             });
         } else {
-            if current.is_none() {
-                intro_chapter.push(line.clone());
-            } else {
-                // 将行添加到当前章节
-                if let Some(ref mut ch) = current {
-                    ch.content.push(line.clone());
-                }
-            }
+            let target = current
+                .as_mut()
+                .map(|c| &mut c.content)
+                .unwrap_or(&mut intro_lines);
+            target.push(line.clone());
         }
     }
 
-    // push last
+    // Push last chapter
     if let Some(last) = current {
         chapters.push(last);
+    } else if !intro_lines.is_empty() {
+        chapters.push(Chapter {
+            number: 0,
+            title: "ALL".to_string(),
+            start_line: 0,
+            content: intro_lines,
+        });
     }
 
     chapters

@@ -73,29 +73,29 @@ pub struct App {
     last_auto_scroll_time: std::time::Instant,
 }
 
-fn toggle_bookmark_symbol_in_place(line: &mut String) {
-    let trimmed = line.trim_end();
+// fn toggle_bookmark_symbol_in_place(line: &mut String) {
+//     let trimmed = line.trim_end();
 
-    if trimmed.ends_with(bookmark::BOOKMARK_SYMBOL) {
-        if let Some(pos) = trimmed.rfind(bookmark::BOOKMARK_SYMBOL) {
-            *line = trimmed[..pos].trim_end().to_string();
-        }
-        return;
-    }
+//     if trimmed.ends_with(BOOKMARK_SYMBOL) {
+//         if let Some(pos) = trimmed.rfind(BOOKMARK_SYMBOL) {
+//             *line = trimmed[..pos].trim_end().to_string();
+//         }
+//         return;
+//     }
 
-    *line = trimmed.to_string();
-    line.push_str(&format!(" {}", bookmark::BOOKMARK_SYMBOL));
-}
+//     *line = trimmed.to_string();
+//     line.push_str(&format!(" {}", BOOKMARK_SYMBOL));
+// }
 
-fn remove_bookmark_symbol_from_line(line: &mut String) {
-    let trimmed = line.trim_end();
+// fn remove_bookmark_symbol_from_line(line: &mut String) {
+//     let trimmed = line.trim_end();
 
-    if trimmed.ends_with(bookmark::BOOKMARK_SYMBOL) {
-        if let Some(pos) = trimmed.rfind(bookmark::BOOKMARK_SYMBOL) {
-            *line = trimmed[..pos].trim_end().to_string();
-        }
-    }
-}
+//     if trimmed.ends_with(BOOKMARK_SYMBOL)
+//         && let Some(pos) = trimmed.rfind(BOOKMARK_SYMBOL) {
+//             *line = trimmed[..pos].trim_end().to_string();
+//         }
+
+// }
 
 impl App {
     pub fn new(args: Options) -> Self {
@@ -117,11 +117,11 @@ impl App {
             bookmarks: Vec::new(),
             bookmark_state: ListState::default(),
             show_bookmark_menu: false,
-            show_title: args.simple_mode == false, // Set based on simple_mode flag
+            show_title: !args.simple_mode, // Set based on simple_mode flag
             show_help: false,
-            initial_bookmark_jump: args.bookmark,  // Store the bookmark index
-            initial_chapter_jump: args.chapter,    // Store the chapter index
-            reinit_terminal: false,                // Initialize the new flag
+            initial_bookmark_jump: args.bookmark, // Store the bookmark index
+            initial_chapter_jump: args.chapter,   // Store the chapter index
+            reinit_terminal: false,               // Initialize the new flag
             auto_scroll: false,
             auto_scroll_speed: args.speed * 1000.0, // Default speed delay between scrolls
             last_auto_scroll_time: std::time::Instant::now(),
@@ -163,19 +163,19 @@ impl App {
         if !self.bookmarks.is_empty() {
             self.bookmark_state.select(Some(0));
         }
-        // set initial view: first chapter if exists, else whole file
+        // set initial view: first chapter if exists, else whole file 
         if !self.chapters.is_empty() {
             self.toc_state.select(Some(0));
             self.select_chapter(0);
         } else {
-            self.toc_state.select(None);
-            self.view_lines = self.lines.clone();
-            self.view_offset = 0;
-            if !self.view_lines.is_empty() {
-                self.content_state.select(Some(0));
-            } else {
-                self.content_state.select(None);
-            }
+            // self.toc_state.select(None);
+            // self.view_lines = self.lines.clone();
+            // self.view_offset = 0;
+            // if !self.view_lines.is_empty() {
+            //     self.content_state.select(Some(0));
+            // } else {
+            //     self.content_state.select(None);
+            // }
         }
         Ok(())
     }
@@ -184,7 +184,8 @@ impl App {
     fn decode_with_auto_detect(bytes: &[u8]) -> String {
         let mut det = EncodingDetector::new();
         det.feed(bytes, true);
-        let encoding = det.guess(None, true);
+        let encoding = det.guess(Some(b"cn"), true);
+
         let (cow, _, _) = encoding.decode(bytes);
         cow.into_owned()
     }
@@ -230,7 +231,7 @@ impl App {
                 scroll_interval.saturating_sub(elapsed) // Wait for the remaining time
             }
         } else {
-            Duration::from_millis(250) // Default poll timeout when not auto-scrolling (e.g., 4 FPS)
+            Duration::from_millis(250) // Default poll timeout when not auto-scrolling
         };
 
         // Poll for crossterm events with a timeout
@@ -344,35 +345,24 @@ impl App {
             }
             (false, true) => {}
         }
-        // if self.show_title {
-        //     self.render_footer(frame, chunks[2]);
-        // }
-
-        // if self.show_help {
-        //     self.render_help(frame, chunks[3]);
-        // }
     }
 
     fn get_layout_chunks(&self, area: Rect) -> Vec<Rect> {
         match (self.show_title, self.show_help) {
-            (false, false) | (false, true) => {
-                Layout::default()
-                    .direction(Direction::Vertical)
-                    .constraints([Constraint::Min(1)].as_ref())
-                    .split(area)
-                    .to_vec()
-            }
-            (true, false) => {
-                Layout::default()
-                    .direction(Direction::Vertical)
-                    .constraints([
-                        Constraint::Length(1),
-                        Constraint::Min(1),
-                        Constraint::Length(1),
-                    ])
-                    .split(area)
-                    .to_vec()
-            }
+            (false, false) | (false, true) => Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Min(1)].as_ref())
+                .split(area)
+                .to_vec(),
+            (true, false) => Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Length(1),
+                    Constraint::Min(1),
+                    Constraint::Length(1),
+                ])
+                .split(area)
+                .to_vec(),
             (true, true) => {
                 Layout::default()
                     .direction(Direction::Vertical)
@@ -500,6 +490,14 @@ impl App {
         frame.render_stateful_widget(list, area, &mut self.toc_state);
     }
 
+    fn file_name_string(&self) -> String {
+        self.file_path
+            .file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or("")
+            .to_string()
+    }
+
     fn render_footer(&self, frame: &mut Frame, area: Rect) {
         // render outer border for footer
         let block = Block::default()
@@ -515,32 +513,12 @@ impl App {
             height: area.height,
         };
 
-        let chapter_info = if !self.chapters.is_empty() {
-            if let Some(sel) = self.toc_state.selected() {
-                self.chapters
-                    .get(sel)
-                    .map(|c| c.title.clone())
-                    .unwrap_or_else(|| {
-                        self.file_path
-                            .file_name()
-                            .and_then(|s| s.to_str())
-                            .unwrap_or("")
-                            .to_string()
-                    })
-            } else {
-                self.file_path
-                    .file_name()
-                    .and_then(|s| s.to_str())
-                    .unwrap_or("")
-                    .to_string()
-            }
-        } else {
-            self.file_path
-                .file_name()
-                .and_then(|s| s.to_str())
-                .unwrap_or("")
-                .to_string()
-        };
+        let chapter_info = self
+            .toc_state
+            .selected()
+            .and_then(|sel| self.chapters.get(sel))
+            .map(|c| c.title.clone())
+            .unwrap_or_else(|| self.file_name_string());
 
         let focus_label = match self.focus {
             Focus::Toc => "TOC",
@@ -551,16 +529,28 @@ impl App {
         // split footer
         let cols = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints([Constraint::Length(11), Constraint::Percentage(40), Constraint::Percentage(50), Constraint::Length(8)])
+            .constraints([
+                Constraint::Length(11),
+                Constraint::Percentage(40),
+                Constraint::Percentage(50),
+                Constraint::Length(8),
+            ])
             .split(inner);
 
         let focns_text = Paragraph::new(format!("{}", focus_label))
-            .alignment(Alignment::Center).style(Style::default().fg(Color::White).bg(Color::LightCyan).add_modifier(Modifier::BOLD));
+            .alignment(Alignment::Center)
+            .style(
+                Style::default()
+                    .fg(Color::White)
+                    .bg(Color::LightCyan)
+                    .add_modifier(Modifier::BOLD),
+            );
 
         frame.render_widget(focns_text, cols[0]);
 
         let title_text = Paragraph::new(format!(" {}", chapter_info))
-            .alignment(Alignment::Left).style(Style::default().fg(Color::White));
+            .alignment(Alignment::Left)
+            .style(Style::default().fg(Color::White));
 
         frame.render_widget(title_text, cols[1]);
 
@@ -575,7 +565,7 @@ impl App {
             .get(self.toc_state.selected().unwrap_or(0))
             .map_or(0, |chapter| chapter.start_line + selected_line_in_view);
 
-        let progress_indicator = format!("{}/{} ",  global_line_number, total_lines);
+        let progress_indicator = format!("{}/{} ", global_line_number, total_lines);
         let right = Paragraph::new(progress_indicator)
             .alignment(Alignment::Right)
             .style(Style::default().fg(Color::White));
@@ -647,14 +637,14 @@ impl App {
     }
 
     fn suspend_app(&mut self) -> Result<()> {
-        // Restore terminal before suspending
-        ratatui::restore();
-        // Show cursor
-        crossterm::execute!(std::io::stdout(), Show, LeaveAlternateScreen)?;
-
-        // Suspend the process
         #[cfg(unix)]
         {
+            // Restore terminal before suspending
+            ratatui::restore();
+            // Show cursor
+            crossterm::execute!(std::io::stdout(), Show, LeaveAlternateScreen)?;
+
+            // Suspend the process
             use signal_hook::consts::signal::SIGTSTP;
             use signal_hook::low_level::raise;
 
@@ -837,7 +827,7 @@ impl App {
             return;
         }
 
-        toggle_bookmark_symbol_in_place(line);
+        bookmark::toggle_bookmark_symbol_in_place(line);
         let updated_line = line.clone();
 
         self.sync_line_to_views(chapter_start_line, line_idx_in_view, &updated_line);
@@ -911,62 +901,65 @@ impl App {
     }
 
     fn move_bookmark_down(&mut self) {
-        if let Some(selected) = self.bookmark_state.selected() {
-            if selected + 1 < self.bookmarks.len() {
-                self.bookmark_state.select(Some(selected + 1));
-                self.jump_to_selected_bookmark();
-            }
+        if let Some(selected) = self.bookmark_state.selected()
+            && selected + 1 < self.bookmarks.len()
+        {
+            self.bookmark_state.select(Some(selected + 1));
+            self.jump_to_selected_bookmark();
         }
     }
 
     fn jump_to_selected_bookmark(&mut self) {
-        if let Some(selected) = self.bookmark_state.selected() {
-            if let Some(bookmark) = self.bookmarks.get(selected).cloned() {
-                self.select_chapter(bookmark.chapter_index);
-                self.content_state.select(Some(bookmark.line_in_chapter));
-            }
+        if let Some(selected) = self.bookmark_state.selected()
+            && let Some(bookmark) = self.bookmarks.get(selected).cloned()
+        {
+            self.select_chapter(bookmark.chapter_index);
+            self.content_state.select(Some(bookmark.line_in_chapter));
         }
     }
 
     fn clear_all_bookmarks(&mut self) {
-        if self.focus != Focus::Bookmark {
+        if self.focus != Focus::Bookmark || self.bookmarks.is_empty() {
             return;
         }
 
-        if self.bookmarks.is_empty() {
-            return;
-        }
+        let targets: Vec<(usize, usize)> = self
+            .bookmarks
+            .iter()
+            .map(|b| (b.chapter_index, b.line_in_chapter))
+            .collect();
 
-        let mut lines_to_update = Vec::new();
-        for (chapter_idx, chapter) in self.chapters.iter().enumerate() {
-            for (line_idx_in_view, line) in chapter.content.iter().enumerate() {
-                if line.trim().ends_with(bookmark::BOOKMARK_SYMBOL) {
-                    if let Some(chapter_start_line) = chapter.start_line.checked_add(0) {
-                        lines_to_update.push((chapter_idx, line_idx_in_view, chapter_start_line));
-                    }
+        for (chapter_idx, line_idx) in targets {
+            // 先获取章节的 start_line（用于后续 sync）
+            // 这里使用两步操作避免借用冲突：先只读获取 start_line，再进行可变借用修改内容
+            let chapter_start_line = if let Some(chapter) = self.chapters.get(chapter_idx) {
+                chapter.start_line
+            } else {
+                continue;
+            };
+
+            // 获取可变行引用并修改
+            if let Some(line) = self.chapter_line_mut(chapter_idx, line_idx) {
+                if line.trim_end().ends_with(bookmark::BOOKMARK_SYMBOL) {
+                    bookmark::remove_bookmark_symbol_from_line(line);
+
+                    // sync
+                    let updated_line = line.clone();
+                    self.sync_line_to_views(chapter_start_line, line_idx, &updated_line);
                 }
             }
         }
 
-        for (chapter_idx, line_idx_in_view, chapter_start_line) in lines_to_update {
-            // change line in chapter
-            if let Some(line) = self.chapter_line_mut(chapter_idx, line_idx_in_view) {
-                remove_bookmark_symbol_from_line(line);
-                let updated_line = line.clone();
+        self.bookmarks.clear();
 
-                self.sync_line_to_views(chapter_start_line, line_idx_in_view, &updated_line);
-            }
-        }
-
+        // 5. 刷新 UI 和保存
         self.refresh_bookmarks_after_toggle();
-
-        // save
         self.persist_file_best_effort();
     }
 
     fn render_help(&self, frame: &mut Frame, area: Rect) {
         // Create horizontal layout for shortcuts
-        let help_content = vec![
+        let help_content = [
             "                                                                        ",
             " k/↑  Up       q  Quit                        Space  Auto Scroll",
             " j/↓  Down     Q  Mark & Quit                 s      Toggle Title/Footer",
@@ -977,10 +970,7 @@ impl App {
         let help_text = help_content.join("\n");
 
         let paragraph = Paragraph::new(help_text)
-            .block(
-                Block::default()
-                    .borders(Borders::NONE),
-            )
+            .block(Block::default().borders(Borders::NONE))
             .style(Style::default().fg(Color::DarkGray).bg(Color::Black))
             .alignment(Alignment::Left);
 

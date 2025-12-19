@@ -515,12 +515,6 @@ impl App {
             height: area.height,
         };
 
-        // split into left (chapter info) and right (hints)
-        let cols = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
-            .split(inner);
-
         let chapter_info = if !self.chapters.is_empty() {
             if let Some(sel) = self.toc_state.selected() {
                 self.chapters
@@ -549,18 +543,29 @@ impl App {
         };
 
         let focus_label = match self.focus {
-            Focus::Toc => "[TOC]",
-            Focus::Content => "[CONTENT]",
-            Focus::Bookmark => "[BOOKMARK]",
+            Focus::Toc => "TOC",
+            Focus::Content => "CONTENT",
+            Focus::Bookmark => "BOOKMARKS",
         };
 
-        let left = Paragraph::new(format!("{} {}", focus_label, chapter_info))
-            .alignment(Alignment::Left)
-            .style(Style::default().fg(Color::White));
-        frame.render_widget(left, cols[0]);
+        // split footer
+        let cols = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Length(11), Constraint::Percentage(40), Constraint::Percentage(50), Constraint::Length(8)])
+            .split(inner);
+
+        let focns_text = Paragraph::new(format!("{}", focus_label))
+            .alignment(Alignment::Center).style(Style::default().fg(Color::White).bg(Color::LightCyan).add_modifier(Modifier::BOLD));
+
+        frame.render_widget(focns_text, cols[0]);
+
+        let title_text = Paragraph::new(format!(" {}", chapter_info))
+            .alignment(Alignment::Left).style(Style::default().fg(Color::White));
+
+        frame.render_widget(title_text, cols[1]);
 
         let total_lines = self.lines.len();
-        let _view_lines = self.view_lines.len();
+        // let _view_lines = self.view_lines.len();
         let selected_line_in_view = match self.content_state.selected() {
             Some(idx) => idx + 1,
             None => 0,
@@ -570,12 +575,17 @@ impl App {
             .get(self.toc_state.selected().unwrap_or(0))
             .map_or(0, |chapter| chapter.start_line + selected_line_in_view);
 
-        let progress_indicator = format!("{}/{} [?] Help",  global_line_number, total_lines);
-        //let hints = "[q]Quit [b]Bookmark [m]Toggle Mark | [h/←]Left [l/→]Right | [j/↓]Down [k/↑]Up";
+        let progress_indicator = format!("{}/{} ",  global_line_number, total_lines);
         let right = Paragraph::new(progress_indicator)
             .alignment(Alignment::Right)
             .style(Style::default().fg(Color::White));
-        frame.render_widget(right, cols[1]);
+        frame.render_widget(right, cols[2]);
+
+        let help = format!("? Help");
+        let right = Paragraph::new(help)
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(Color::Gray).bg(Color::DarkGray));
+        frame.render_widget(right, cols[3]);
     }
 
     // helper to change selected chapter and update view

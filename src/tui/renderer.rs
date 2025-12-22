@@ -138,7 +138,8 @@ fn render_content(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &N
 
     let highlight = if state.focus == FocusArea::Content {
         Style::default()
-            .fg(Color::White)
+            .fg(Color::Black)
+            .bg(Color::Green)
             .add_modifier(Modifier::BOLD)
     } else {
         Style::default().fg(Color::DarkGray)
@@ -190,7 +191,6 @@ fn render_footer(frame: &mut Frame, area: Rect, state: &AppState, novel: &Novel)
     // 渲染背景
     frame.render_widget(Block::default().style(Style::default()), area);
 
-    // 核心修改：左右各留 1 列空白，使其与上方 Block 的边框垂直对齐
     let side_padding = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
@@ -262,7 +262,7 @@ fn render_footer(frame: &mut Frame, area: Rect, state: &AppState, novel: &Novel)
             layout[3],
         );
 
-        // 5. Help Hint (背景色块，右对齐)
+        // 5. Help Hint
         frame.render_widget(
             Paragraph::new(" ? Help ")
                 .alignment(Alignment::Center)

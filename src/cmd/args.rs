@@ -16,15 +16,15 @@ pub struct Options {
     #[arg(short, long, value_name = "NUM", conflicts_with = "bookmark")]
     pub chapter: Option<usize>,
 
-    /// simple mode: hide title and footer(default: false)
+    /// Simple mode: hide title and footer (default: false)
     #[arg(short, long, default_value_t = false)]
     pub simple_mode: bool,
 
-    /// auto-scroll speed: <NUM> seconds per line (default: 1.5)
+    /// Auto-scroll speed: <NUM> seconds per line (default: 1.5)
     #[arg(long, value_name = "NUM", default_value_t = 1.5)]
     pub speed: f64,
 
-    /// show bookmark menu
+    /// Show bookmark menu in CLI mode and exit
     #[arg(long)]
     pub show_bookmark: bool,
 }

@@ -20,7 +20,7 @@ impl ChapterMetadata {
         let re_cn = RE_CN.get_or_init(|| {
             Regex::new(r"^\s*第\s*[0-9零一二三四五六七八九十百千两〇]+\s*章").unwrap()
         });
-        let re_en = RE_EN.get_or_init(|| Regex::new(r"(?i)^\s*chapter\s*\d+").unwrap());
+        let re_en = RE_EN.get_or_init(|| Regex::new(r"(?i)^\s*chapter\s*(?:\d+|[a-z]+)").unwrap());
 
         let mut chapters = Vec::new();
 

@@ -1,20 +1,14 @@
 # Noveltui
 
-A terminal-based novel reader with a clean, distraction-free interface for reading text files.
-
+A terminal-based novel reader .
 ## Features
 
 - **Text File Support**: Reads UTF-8, GBK, GB2312, and other encodings
 - **Chapter Parsing**: Automatically detects and navigates chapters (e.g., "Chapter 1", "第1章", "CHAPTER SIX")
 - **Bookmarks**: Add, remove, and manage bookmarks for easy navigation
 - **Auto-Read Mode**: Hands-free reading with automatic scrolling
-- **Keyboard Navigation**: Vim-like keybindings for efficient browsing
-- **Pagination**: Smooth scrolling and chapter-based navigation
 
 ## Installation
-
-### Prerequisites
-- Rust (latest stable version recommended)
 
 ### Build from Source
 ```bash
@@ -59,9 +53,9 @@ The app automatically parses chapter titles using regex patterns:
 
 ## Screenshots
 
-![Main Interface](./assets/example.png)
+![Main Interface](./assets/image3.png)
 
-![Bookmark Menu](./assets/image.png)
+![Bookmark Menu](./assets/image1.png)
 
 ## Contributing
 

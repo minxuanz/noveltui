@@ -16,6 +16,8 @@ pub enum Action {
     MoveDown,
     Enter,
     AutoScroll,
+    ConfirmDelete,
+    CancelDelete,
     None,
 }
 
@@ -25,7 +27,7 @@ pub fn resolve_event(ev: Event) -> Action {
             KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => Action::Quit,
             KeyCode::Char('z') if key.modifiers.contains(KeyModifiers::CONTROL) => Action::Suspend,
 
-            KeyCode::Char('q') => Action::Quit,
+            KeyCode::Char('q') | KeyCode::Esc => Action::Quit,
             KeyCode::Char('Q') => Action::SaveAndQuit,
             KeyCode::Char('b') => Action::ToggleBookmarkMenu,
             KeyCode::Char('s') => Action::ToggleTitleFooter,
@@ -38,6 +40,8 @@ pub fn resolve_event(ev: Event) -> Action {
             KeyCode::Enter => Action::Enter,
             KeyCode::Char(' ') => Action::AutoScroll,
             KeyCode::Char('?') => Action::ToggleHelp,
+            KeyCode::Char('y') | KeyCode::Char('Y') => Action::ConfirmDelete,
+            KeyCode::Char('n') | KeyCode::Char('N') => Action::CancelDelete,
             _ => Action::None,
         },
         _ => Action::None,

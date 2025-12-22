@@ -35,6 +35,9 @@ pub struct AppState {
 
     // Current Navigation
     pub active_chapter_index: usize,
+
+    // Delete Confirmation Dialog
+    pub show_delete_confirmation: bool,
 }
 
 impl AppState {
@@ -58,6 +61,7 @@ impl AppState {
             last_scroll_time: std::time::Instant::now(),
             cached_bookmarks: Vec::new(),
             active_chapter_index: 0,
+            show_delete_confirmation: false,
         }
     }
 

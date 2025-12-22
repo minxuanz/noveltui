@@ -101,8 +101,17 @@ impl App {
             }
             Action::ToggleTitleFooter => self.state.show_title = !self.state.show_title,
             Action::ToggleBookmarkAtCursor => self.toggle_bookmark(),
-            Action::ClearAllBookmarks => self.clear_all_bookmarks(),
+            Action::ClearAllBookmarks => self.state.show_delete_confirmation = true,
             Action::ToggleHelp => self.state.show_help = !self.state.show_help,
+            Action::ConfirmDelete => {
+                if self.state.show_delete_confirmation {
+                    self.clear_all_bookmarks();
+                    self.state.show_delete_confirmation = false;
+                }
+            }
+            Action::CancelDelete => {
+                self.state.show_delete_confirmation = false;
+            }
 
             Action::FocusLeft => self.switch_focus(true),
             Action::FocusRight => self.switch_focus(false),
@@ -214,7 +223,7 @@ impl App {
     // --- Bookmark Logic ---
 
     fn toggle_bookmark(&mut self) {
-        if self.state.focus != FocusArea::Content {
+        if self.state.focus == FocusArea::Toc {
             return;
         }
 

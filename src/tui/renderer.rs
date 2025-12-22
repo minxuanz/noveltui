@@ -28,6 +28,10 @@ pub fn render_ui(frame: &mut Frame, state: &mut AppState, novel: &Novel, file_pa
     if state.show_help {
         render_help(frame, *chunks.last().unwrap());
     }
+
+    if state.show_delete_confirmation {
+        render_delete_confirmation(frame, frame.area());
+    }
 }
 
 fn get_main_layout(area: Rect, state: &AppState) -> Vec<Rect> {
@@ -292,12 +296,9 @@ fn render_help(frame: &mut Frame, area: Rect) {
     let inner_area = side_padding[1];
 
     let help_groups = [
-        ("Movement", "k/↑ Up  j/↓ Down  h/← Left  l/→ Right"),
-        (
-            "Actions ",
-            "m Mark  M Clear All  Space AutoScroll  Enter Focus",
-        ),
-        ("System  ", "b Bookmarks  s UI Toggle  q Quit  Q Save&Quit"),
+        " k/↑ Up          j/↓ Down             h/←   Left         l/→ Right",
+        " m   Toggle Mark M   Clear All Marks  Space AutoScroll   Q   Mark&Quit",
+        " b   Bookmarks   s   UI Toggle        q/esc Quit",
     ];
 
     let chunks = Layout::default()
@@ -310,17 +311,78 @@ fn render_help(frame: &mut Frame, area: Rect) {
         ])
         .split(inner_area);
 
-    for (i, (category, keys)) in help_groups.iter().enumerate() {
-        let line = Line::from(vec![
-            Span::styled(
-                format!(" {}: ", category),
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(*keys, Style::default().fg(Color::Gray)),
-        ]);
+    for (i, keys) in help_groups.iter().enumerate() {
+        let line = Line::from(vec![Span::styled(*keys, Style::default().fg(Color::Gray))]);
         // 从 chunks[1] 开始渲染，避开边框
-        frame.render_widget(Paragraph::new(line), chunks[i + 1]);
+        frame.render_widget(
+            Paragraph::new(line).alignment(Alignment::Left),
+            chunks[i + 1],
+        );
     }
+}
+
+fn render_delete_confirmation(frame: &mut Frame, area: Rect) {
+    let dialog_width = 50;
+    let dialog_height = 4;
+
+    let x = (area.width.saturating_sub(dialog_width)) / 2;
+    let y = (area.height.saturating_sub(dialog_height)) / 2;
+
+    let dialog_area = Rect {
+        x,
+        y,
+        width: dialog_width.min(area.width),
+        height: dialog_height.min(area.height),
+    };
+
+    frame.render_widget(Clear, dialog_area);
+
+    let block = Block::default()
+        //.borders(Borders::ALL)
+        //.border_type(BorderType::Rounded)
+        //.title(" Confirm ")
+        .title_alignment(Alignment::Center)
+        .border_style(Style::default().fg(Color::Green));
+
+    frame.render_widget(block, dialog_area);
+
+    let inner = Rect {
+        x: dialog_area.x + 1,
+        y: dialog_area.y + 1,
+        width: dialog_area.width.saturating_sub(2),
+        height: dialog_area.height.saturating_sub(2),
+    };
+
+    let layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(1), Constraint::Min(1)])
+        .split(inner);
+
+    // Message
+    frame.render_widget(
+        Paragraph::new("Delete all bookmarks?")
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(Color::White)),
+        layout[0],
+    );
+
+    // Buttons
+    let buttons = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(layout[1]);
+
+    frame.render_widget(
+        Paragraph::new(" Yes (Y) ")
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(Color::DarkGray)),
+        buttons[0],
+    );
+
+    frame.render_widget(
+        Paragraph::new(" No (N) ")
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(Color::DarkGray)),
+        buttons[1],
+    );
 }

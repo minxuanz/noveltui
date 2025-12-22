@@ -71,6 +71,10 @@ impl Novel {
     pub fn toggle_bookmark(&mut self, global_index: usize) -> bool {
         if let Some(line) = self.lines.get_mut(global_index) {
             let trimmed_len = line.trim_end().len();
+            // if line is empty return false
+            if line.trim().is_empty() {
+                return false;
+            }
 
             if line.trim_end().ends_with(BOOKMARK_SYMBOL) {
                 // Remove it

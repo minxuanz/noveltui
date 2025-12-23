@@ -109,10 +109,15 @@ fn render_toc(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &Novel
         Style::default().fg(Color::Gray)
     };
 
+    let mut text = ""; 
+    if state.show_title {
+        text = " TOC ";
+    }
+
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .title(" TOC ");
+        .title(text);
 
     let list = List::new(items)
         .block(block)
@@ -149,10 +154,15 @@ fn render_content(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &N
         Style::default().fg(Color::DarkGray)
     };
 
+    let mut text = ""; 
+    if state.show_title {
+        text = " Content ";
+    }
+
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .title(" Content ");
+        .title(text);
 
     let list = List::new(items)
         .block(block)
@@ -179,12 +189,17 @@ fn render_bookmarks(frame: &mut Frame, area: Rect, state: &mut AppState) {
         Style::default().fg(Color::Gray)
     };
 
+    let mut text = ""; 
+    if state.show_title {
+        text = " Bookmarks ";
+    }
+
     let list = List::new(items)
         .block(
             Block::default()
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
-                .title(" Bookmarks "),
+                .title(text),
         )
         .highlight_style(highlight);
 

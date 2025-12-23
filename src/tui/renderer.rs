@@ -296,9 +296,9 @@ fn render_help(frame: &mut Frame, area: Rect) {
     let inner_area = side_padding[1];
 
     let help_groups = [
-        " k/↑ Up          j/↓ Down             h/←   Left         l/→ Right",
-        " m   Toggle Mark M   Clear All Marks  Space AutoScroll   Q   Mark&Quit",
-        " b   Bookmarks   s   UI Toggle        q/esc Quit",
+        " k/↑ Up           j/↓ Down             h/←   Left         l/→ Right",
+        " m   Toggle Mark  M   Clear All Marks  Space AutoScroll   Q   Mark&Quit",
+        " b   Bookmarks    s   UI Toggle        q/esc Quit",
     ];
 
     let chunks = Layout::default()
@@ -312,7 +312,7 @@ fn render_help(frame: &mut Frame, area: Rect) {
         .split(inner_area);
 
     for (i, keys) in help_groups.iter().enumerate() {
-        let line = Line::from(vec![Span::styled(*keys, Style::default().fg(Color::Gray))]);
+        let line = Line::from(vec![Span::styled(*keys, Style::default().fg(Color::DarkGray))]);
         // 从 chunks[1] 开始渲染，避开边框
         frame.render_widget(
             Paragraph::new(line).alignment(Alignment::Left),
@@ -338,11 +338,11 @@ fn render_delete_confirmation(frame: &mut Frame, area: Rect) {
     frame.render_widget(Clear, dialog_area);
 
     let block = Block::default()
-        //.borders(Borders::ALL)
-        //.border_type(BorderType::Rounded)
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
         //.title(" Confirm ")
         .title_alignment(Alignment::Center)
-        .border_style(Style::default().fg(Color::Green));
+        .border_style(Style::default().fg(Color::LightCyan));
 
     frame.render_widget(block, dialog_area);
 

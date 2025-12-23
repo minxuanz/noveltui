@@ -1,5 +1,4 @@
-pub mod app;
-pub mod args;
-pub mod bookmark;
-pub mod chapter;
-pub mod input;
+pub mod cmd;
+pub mod core;
+pub mod infra;
+pub mod tui;

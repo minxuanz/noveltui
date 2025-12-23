@@ -84,10 +84,9 @@ impl App {
     fn process_action(&mut self, action: Action) -> Result<()> {
         match action {
             Action::Quit => self.state.running = false,
-            Action::SaveAndQuit => {
-                // Ensure current modification is saved, though we modify memory directly in toggle
-                // Just need to flush to disk.
-                fs::save_content(&self.options.file_path, &self.novel.lines)?;
+            Action::MarkAndQuit => {
+                // mark current line before quitting
+                self.toggle_bookmark();
                 self.state.running = false;
             }
             Action::Suspend => self.suspend()?,

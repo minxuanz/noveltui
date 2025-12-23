@@ -3,7 +3,7 @@ use crossterm::event::{Event, KeyCode, KeyEventKind, KeyModifiers};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Action {
     Quit,
-    SaveAndQuit,
+    MarkAndQuit,
     Suspend,
     ToggleBookmarkMenu,
     ToggleTitleFooter,
@@ -28,7 +28,7 @@ pub fn resolve_event(ev: Event) -> Action {
             KeyCode::Char('z') if key.modifiers.contains(KeyModifiers::CONTROL) => Action::Suspend,
 
             KeyCode::Char('q') | KeyCode::Esc => Action::Quit,
-            KeyCode::Char('Q') => Action::SaveAndQuit,
+            KeyCode::Char('Q') => Action::MarkAndQuit,
             KeyCode::Char('b') => Action::ToggleBookmarkMenu,
             KeyCode::Char('s') => Action::ToggleTitleFooter,
             KeyCode::Char('m') => Action::ToggleBookmarkAtCursor,

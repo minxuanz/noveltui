@@ -1,3 +1,4 @@
+use crate::tui::state::AppState;
 use crossterm::event::{Event, KeyCode, KeyEventKind, KeyModifiers};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -14,6 +15,8 @@ pub enum Action {
     FocusRight,
     MoveUp,
     MoveDown,
+    NextChapter,
+    PrevChapter,
     Enter,
     AutoScroll,
     ConfirmDelete,
@@ -21,7 +24,7 @@ pub enum Action {
     None,
 }
 
-pub fn resolve_event(ev: Event) -> Action {
+pub fn resolve_event(ev: Event, state: &AppState) -> Action {
     match ev {
         Event::Key(key) if key.kind == KeyEventKind::Press => match key.code {
             KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => Action::Quit,
@@ -31,6 +34,11 @@ pub fn resolve_event(ev: Event) -> Action {
             KeyCode::Char('Q') => Action::SaveAndQuit,
             KeyCode::Char('b') => Action::ToggleBookmarkMenu,
             KeyCode::Char('s') => Action::ToggleTitleFooter,
+            KeyCode::Char('n') | KeyCode::Char('N') if state.show_delete_confirmation => {
+                Action::CancelDelete
+            }
+            KeyCode::Char('n') => Action::NextChapter,
+            KeyCode::Char('p') => Action::PrevChapter,
             KeyCode::Char('m') => Action::ToggleBookmarkAtCursor,
             KeyCode::Char('M') => Action::ClearAllBookmarks,
             KeyCode::Char('h') | KeyCode::Left => Action::FocusLeft,
@@ -40,8 +48,9 @@ pub fn resolve_event(ev: Event) -> Action {
             KeyCode::Enter => Action::Enter,
             KeyCode::Char(' ') => Action::AutoScroll,
             KeyCode::Char('?') => Action::ToggleHelp,
-            KeyCode::Char('y') | KeyCode::Char('Y') => Action::ConfirmDelete,
-            KeyCode::Char('n') | KeyCode::Char('N') => Action::CancelDelete,
+            KeyCode::Char('y') | KeyCode::Char('Y') if state.show_delete_confirmation => {
+                Action::ConfirmDelete
+            }
             _ => Action::None,
         },
         _ => Action::None,

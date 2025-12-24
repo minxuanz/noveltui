@@ -64,7 +64,7 @@ impl App {
         };
 
         if event::poll(timeout)? {
-            let action = inputs::resolve_event(event::read()?);
+            let action = inputs::resolve_event(event::read()?, &self.state);
             self.process_action(action)?;
         }
 
@@ -118,6 +118,19 @@ impl App {
 
             Action::MoveUp => self.move_cursor_up(),
             Action::MoveDown => self.move_cursor_down(),
+
+            Action::NextChapter => {
+                let curr = self.state.active_chapter_index;
+                if curr + 1 < self.novel.chapters.len() {
+                    self.select_chapter(curr + 1);
+                }
+            }
+            Action::PrevChapter => {
+                let curr = self.state.active_chapter_index;
+                if curr > 0 {
+                    self.select_chapter(curr - 1);
+                }
+            }
 
             Action::Enter => self.on_enter(),
             Action::AutoScroll => self.state.auto_scroll = !self.state.auto_scroll,

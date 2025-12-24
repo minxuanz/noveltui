@@ -127,6 +127,11 @@ fn render_content(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &N
         .unwrap_or(&[]);
     let inner_width = area.width.saturating_sub(4) as usize;
 
+    let title = if let Some(meta) = novel.chapters.get(state.active_chapter_index) {
+        format!(" {} ", meta.title)
+    } else {
+        " Content ".to_string()
+    };
     let items: Vec<ListItem> = chapter_lines
         .iter()
         .map(|line| {
@@ -152,7 +157,7 @@ fn render_content(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &N
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .title(" Content ");
+        .title(title);
 
     let list = List::new(items)
         .block(block)
@@ -298,7 +303,7 @@ fn render_help(frame: &mut Frame, area: Rect) {
     let help_groups = [
         " k/↑ Up          j/↓ Down             h/←   Left         l/→ Right",
         " m   Toggle Mark M   Clear All Marks  Space AutoScroll   Q   Mark&Quit",
-        " b   Bookmarks   s   UI Toggle        q/esc Quit",
+        " b   Bookmarks   s   UI Toggle        q/esc Quit         n/p   Next/Prev Chap",
     ];
 
     let chunks = Layout::default()

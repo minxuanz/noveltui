@@ -29,11 +29,12 @@ pub fn fetch_novel(url: &str) -> Result<NovelPage, Box<dyn std::error::Error>> {
         .unwrap_or_else(|| "Untitled".to_string());
     // <p> </p>
     let p_selector = Selector::parse("article.page-content p").unwrap();
-    let content: Vec<String> = document
+
+    let content = document
         .select(&p_selector)
         .map(|p| p.text().collect::<String>().trim().to_string())
         .filter(|s| !s.is_empty())
-        .collect();
+        .collect::<Vec<String>>();
 
     if content.is_empty() {
         return Err("No content found in article container".into());

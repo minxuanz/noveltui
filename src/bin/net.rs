@@ -136,6 +136,10 @@ fn run_loop(
                                 load_chapter(Arc::clone(&data), current_url.clone());
                                 state.content_state.select(Some(0));
                             }
+                            KeyCode::Char('r') => {
+                                load_chapter(Arc::clone(&data), current_url.clone());
+                                state.content_state.select(Some(0));
+                            }
                             _ => {}
                         }
                     }
@@ -174,7 +178,6 @@ fn load_chapter(shared_data: Arc<Mutex<SharedData>>, url: String) {
     });
 }
 
-// 相对跳转逻辑 (保留)
 fn update_url(url: &str, delta: i32) -> String {
     let parts: Vec<&str> = url.split('/').collect();
     if parts.len() < 5 {
@@ -195,10 +198,8 @@ fn update_url(url: &str, delta: i32) -> String {
     )
 }
 
-// 新增：绝对跳转逻辑
 fn get_url_by_page(url: &str, page_num: i32) -> String {
     let parts: Vec<&str> = url.split('/').collect();
-    // URL 结构通常是 https://ixdzs8.com/read/341844/p1.html
     // parts[0] = "https:"
     // parts[1] = ""
     // parts[2] = domain

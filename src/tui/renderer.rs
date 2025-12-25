@@ -136,11 +136,13 @@ fn render_content(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &N
         .iter()
         .map(|line| {
             let wrapped = textwrap::wrap(line, inner_width);
-            let joined = wrapped
+            let mut joined = wrapped
                 .iter()
                 .map(|c| c.to_string())
                 .collect::<Vec<_>>()
                 .join("\n");
+
+            joined.push_str("\n\n");
             ListItem::new(Text::from(joined))
         })
         .collect();

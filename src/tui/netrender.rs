@@ -26,11 +26,12 @@ pub fn render_ui(frame: &mut Frame, state: &mut AppState, content: &[String], ti
         .iter()
         .map(|line| {
             let wrapped = textwrap::wrap(line, inner_width);
-            let joined = wrapped
+            let mut joined = wrapped
                 .iter()
                 .map(|c| c.to_string())
                 .collect::<Vec<_>>()
                 .join("\n");
+            joined.push_str("\n\n");
             ListItem::new(joined)
         })
         .collect();
@@ -59,7 +60,7 @@ pub fn render_ui(frame: &mut Frame, state: &mut AppState, content: &[String], ti
         .constraints([
             Constraint::Length(11),
             Constraint::Min(1),
-            Constraint::Length(30),
+            Constraint::Length(40),
         ])
         .split(chunks[1]);
 
@@ -111,7 +112,7 @@ pub fn render_ui(frame: &mut Frame, state: &mut AppState, content: &[String], ti
         );
 
         frame.render_widget(
-            Paragraph::new(" [/] Jump [N] Next [P] Prev [Q] Quit ")
+            Paragraph::new(" / Jump n Next p Prev q Quit r Refresh ")
                 .alignment(Alignment::Right)
                 .style(Style::default().fg(Color::Gray)),
             foot_chunks[2],

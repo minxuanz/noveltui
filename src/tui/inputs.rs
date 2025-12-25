@@ -7,6 +7,7 @@ pub enum Action {
     SaveAndQuit,
     Suspend,
     ToggleBookmarkMenu,
+    ToggleTocMenu,
     ToggleTitleFooter,
     ToggleBookmarkAtCursor,
     ClearAllBookmarks,
@@ -33,6 +34,7 @@ pub fn resolve_event(ev: Event, state: &AppState) -> Action {
             KeyCode::Char('q') | KeyCode::Esc => Action::Quit,
             KeyCode::Char('Q') => Action::SaveAndQuit,
             KeyCode::Char('b') => Action::ToggleBookmarkMenu,
+            KeyCode::Char('t') => Action::ToggleTocMenu,
             KeyCode::Char('s') => Action::ToggleTitleFooter,
             KeyCode::Char('n') | KeyCode::Char('N') if state.show_delete_confirmation => {
                 Action::CancelDelete

@@ -22,6 +22,7 @@ pub struct AppState {
 
     // Display Flags
     pub show_bookmark_menu: bool,
+    pub show_toc_menu: bool,
     pub show_title: bool,
     pub show_help: bool,
 
@@ -54,6 +55,7 @@ impl AppState {
             content_state,
             bookmark_state: ListState::default(),
             show_bookmark_menu: false,
+            show_toc_menu: false,
             show_title,
             show_help: false,
             auto_scroll: false,

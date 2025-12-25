@@ -99,6 +99,7 @@ impl App {
                     FocusArea::Content
                 };
             }
+            Action::ToggleTocMenu => self.state.show_toc_menu = !self.state.show_toc_menu,
             Action::ToggleTitleFooter => self.state.show_title = !self.state.show_title,
             Action::ToggleBookmarkAtCursor => self.toggle_bookmark(),
             Action::ClearAllBookmarks => self.state.show_delete_confirmation = true,

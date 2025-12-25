@@ -1,6 +1,6 @@
 # Noveltui
 
-A terminal-based novel reader .
+A terminal-based novel reader, Powered by https://github.com/ratatui/ratatui
 ## Features
 
 - **Text File Support**: Reads UTF-8, GBK, GB2312, and other encodings
@@ -26,6 +26,7 @@ Run the application with a text file path:
 ```bash
 ./noveltui path/to/your/novel.txt
 # dzstui can read from html(WIP)
+# Require chrome 
 ./dzstui --url your url
 ```
 

@@ -70,26 +70,33 @@ fn render_title(frame: &mut Frame, area: Rect, path: &Path) {
 }
 
 fn render_middle_section(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &Novel) {
-    let constraints = if state.show_bookmark_menu {
-        vec![
-            Constraint::Percentage(10),
-            Constraint::Min(1),
-            Constraint::Percentage(15),
-        ]
-    } else {
-        vec![Constraint::Percentage(10), Constraint::Min(1)]
-    };
+    let mut constraints = vec![];
+
+    if state.show_toc_menu {
+        constraints.push(Constraint::Percentage(10));
+    }
+    constraints.push(Constraint::Min(1));
+    if state.show_bookmark_menu {
+        constraints.push(Constraint::Percentage(15));
+    }
 
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints(constraints)
         .split(area);
 
-    render_toc(frame, chunks[0], state, novel);
-    render_content(frame, chunks[1], state, novel);
+    let mut chunk_idx = 0;
+
+    if state.show_toc_menu {
+        render_toc(frame, chunks[chunk_idx], state, novel);
+        chunk_idx += 1;
+    }
+
+    render_content(frame, chunks[chunk_idx], state, novel);
+    chunk_idx += 1;
 
     if state.show_bookmark_menu {
-        render_bookmarks(frame, chunks[2], state);
+        render_bookmarks(frame, chunks[chunk_idx], state);
     }
 }
 
@@ -303,9 +310,9 @@ fn render_help(frame: &mut Frame, area: Rect) {
     let inner_area = side_padding[1];
 
     let help_groups = [
-        " k/↑ Up          j/↓ Down             h/←   Left         l/→ Right",
-        " m   Toggle Mark M   Clear All Marks  Space AutoScroll   Q   Mark&Quit",
-        " b   Bookmarks   s   UI Toggle        q/esc Quit         n/p   Next/Prev Chap",
+        " k/↑ Up          j/↓ Down             h/←   Left         l/→   Right",
+        " m   Toggle Mark M   Clear All Marks  q/esc Quit         Q     Mark&Quit",
+        " b   Bookmarks   t   TOC              s     Title&Footer Space AutoScroll",
     ];
 
     let chunks = Layout::default()

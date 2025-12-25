@@ -60,7 +60,7 @@ pub fn render_ui(frame: &mut Frame, state: &mut AppState, content: &[String], ti
         .constraints([
             Constraint::Length(11),
             Constraint::Min(1),
-            Constraint::Length(40),
+            Constraint::Length(49),
         ])
         .split(chunks[1]);
 
@@ -73,16 +73,15 @@ pub fn render_ui(frame: &mut Frame, state: &mut AppState, content: &[String], ti
             foot_chunks[0],
         );
 
-        // Footer 中间：输入的内容
         frame.render_widget(
-            Paragraph::new(format!("Chapter: {}_", state.input_buffer)) // 加个下划线模拟光标
+            Paragraph::new(format!("Chapter: {}_", state.input_buffer))
                 .style(Style::default().fg(Color::White).bg(Color::DarkGray)),
             foot_chunks[1],
         );
 
         // Footer 右侧：操作提示
         frame.render_widget(
-            Paragraph::new(" [Enter] Go [Esc] Cancel ")
+            Paragraph::new(" [Enter] Go  [Esc] Cancel")
                 .alignment(Alignment::Right)
                 .style(Style::default().fg(Color::Gray)),
             foot_chunks[2],
@@ -106,13 +105,13 @@ pub fn render_ui(frame: &mut Frame, state: &mut AppState, content: &[String], ti
 
         frame.render_widget(
             Paragraph::new(progress_text)
-                .alignment(Alignment::Center)
+                .alignment(Alignment::Right)
                 .style(Style::default().fg(Color::Gray)),
             foot_chunks[1],
         );
 
         frame.render_widget(
-            Paragraph::new(" / Jump n Next p Prev q Quit r Refresh ")
+            Paragraph::new(" [/] Jump [n] Next [p] Prev [q] Quit [r] Refresh")
                 .alignment(Alignment::Right)
                 .style(Style::default().fg(Color::Gray)),
             foot_chunks[2],

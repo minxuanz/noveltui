@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [[bin]]
-name = "net_reader"
+name = "dzstui"
 path = "src/bin/net.rs"
 
 [profile.release]
@@ -20,7 +20,6 @@ color-eyre = "0.6.5"
 crossterm = "0.29.0"
 encoding_rs = "0.8.35"
 headless_chrome = "1.0.20"
-playwright = "0.0.20"
 ratatui = "0.29.0"
 regex = "1.12.2"
 reqwest = {version = "0.12.28", features = ["cookies", "rustls-tls"]}

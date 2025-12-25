@@ -25,6 +25,8 @@ Run the application with a text file path:
 
 ```bash
 ./noveltui path/to/your/novel.txt
+# dzstui can read from html(WIP)
+./dzstui --url your url
 ```
 
 ### Supported File Formats

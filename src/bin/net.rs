@@ -19,19 +19,25 @@ struct SharedData {
     success: bool,
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
+    if !args.url.starts_with("https://ixd") {
+        eprintln!("Error: URL don't supported.");
+        return Ok(());
+    }
     let mut terminal = ratatui::init();
 
-    // Initial App State
+    // 初始化状态，增加 show_input 和 input_buffer
     let mut state = AppState {
         content_state: ratatui::widgets::ListState::default(),
         loading_success: false,
         is_loading: true,
+        show_input: false,
+        input_buffer: String::new(),
     };
     state.content_state.select(Some(0));
 
-    // Shared thread-safe data
     let data = Arc::new(Mutex::new(SharedData {
         content: vec!["Initializing...".to_string()],
         title: "Waiting...".to_string(),
@@ -41,7 +47,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let current_url = args.url.clone();
 
-    // Load initial page
     load_chapter(Arc::clone(&data), current_url.clone());
 
     let result = run_loop(&mut terminal, &mut state, data, current_url);
@@ -57,7 +62,6 @@ fn run_loop(
     mut current_url: String,
 ) -> Result<(), Box<dyn std::error::Error>> {
     loop {
-        // Sync local app state with shared thread data
         let (display_content, display_title) = {
             let d = data.lock().unwrap();
             state.is_loading = d.is_loading;
@@ -69,31 +73,72 @@ fn run_loop(
 
         if event::poll(std::time::Duration::from_millis(16))? {
             if let Event::Key(key) = event::read()? {
-                match key.code {
-                    KeyCode::Char('q') => break,
-                    KeyCode::Char('j') | KeyCode::Down => {
-                        let i = state.content_state.selected().unwrap_or(0);
-                        if i < display_content.len().saturating_sub(1) {
-                            state.content_state.select(Some(i + 1));
+                if key.kind == crossterm::event::KeyEventKind::Press {
+                    // === 输入模式逻辑 ===
+                    if state.show_input {
+                        match key.code {
+                            // 输入数字
+                            KeyCode::Char(c) if c.is_ascii_digit() => {
+                                state.input_buffer.push(c);
+                            }
+                            // 退格键删除
+                            KeyCode::Backspace => {
+                                state.input_buffer.pop();
+                            }
+                            // 确认跳转
+                            KeyCode::Enter => {
+                                if let Ok(page_num) = state.input_buffer.parse::<i32>() {
+                                    if page_num > 0 {
+                                        current_url = get_url_by_page(&current_url, page_num);
+                                        load_chapter(Arc::clone(&data), current_url.clone());
+                                        state.content_state.select(Some(0));
+                                    }
+                                }
+                                // 重置并退出输入模式
+                                state.show_input = false;
+                                state.input_buffer.clear();
+                            }
+                            // 取消
+                            KeyCode::Esc => {
+                                state.show_input = false;
+                                state.input_buffer.clear();
+                            }
+                            _ => {}
                         }
                     }
-                    KeyCode::Char('k') | KeyCode::Up => {
-                        let i = state.content_state.selected().unwrap_or(0);
-                        if i > 0 {
-                            state.content_state.select(Some(i - 1));
+                    // === 正常模式逻辑 ===
+                    else {
+                        match key.code {
+                            KeyCode::Char('q') => break,
+                            KeyCode::Char('/') => {
+                                state.show_input = true;
+                                state.input_buffer.clear();
+                            }
+                            KeyCode::Char('j') | KeyCode::Down => {
+                                let i = state.content_state.selected().unwrap_or(0);
+                                if i < display_content.len().saturating_sub(1) {
+                                    state.content_state.select(Some(i + 1));
+                                }
+                            }
+                            KeyCode::Char('k') | KeyCode::Up => {
+                                let i = state.content_state.selected().unwrap_or(0);
+                                if i > 0 {
+                                    state.content_state.select(Some(i - 1));
+                                }
+                            }
+                            KeyCode::Char('n') => {
+                                current_url = update_url(&current_url, 1);
+                                load_chapter(Arc::clone(&data), current_url.clone());
+                                state.content_state.select(Some(0));
+                            }
+                            KeyCode::Char('p') => {
+                                current_url = update_url(&current_url, -1);
+                                load_chapter(Arc::clone(&data), current_url.clone());
+                                state.content_state.select(Some(0));
+                            }
+                            _ => {}
                         }
                     }
-                    KeyCode::Char('n') => {
-                        current_url = update_url(&current_url, 1);
-                        load_chapter(Arc::clone(&data), current_url.clone());
-                        state.content_state.select(Some(0));
-                    }
-                    KeyCode::Char('p') => {
-                        current_url = update_url(&current_url, -1);
-                        load_chapter(Arc::clone(&data), current_url.clone());
-                        state.content_state.select(Some(0));
-                    }
-                    _ => {}
                 }
             }
         }
@@ -101,7 +146,6 @@ fn run_loop(
     Ok(())
 }
 
-/// Unified function to handle background fetching and UI feedback
 fn load_chapter(shared_data: Arc<Mutex<SharedData>>, url: String) {
     {
         let mut d = shared_data.lock().unwrap();
@@ -130,6 +174,7 @@ fn load_chapter(shared_data: Arc<Mutex<SharedData>>, url: String) {
     });
 }
 
+// 相对跳转逻辑 (保留)
 fn update_url(url: &str, delta: i32) -> String {
     let parts: Vec<&str> = url.split('/').collect();
     if parts.len() < 5 {
@@ -147,5 +192,26 @@ fn update_url(url: &str, delta: i32) -> String {
     format!(
         "https://{}/{}/{}/p{}.html",
         parts[2], parts[3], parts[4], next_chapter
+    )
+}
+
+// 新增：绝对跳转逻辑
+fn get_url_by_page(url: &str, page_num: i32) -> String {
+    let parts: Vec<&str> = url.split('/').collect();
+    // URL 结构通常是 https://ixdzs8.com/read/341844/p1.html
+    // parts[0] = "https:"
+    // parts[1] = ""
+    // parts[2] = domain
+    // parts[3] = "read"
+    // parts[4] = book_id
+    // parts[5] = "p1.html"
+
+    if parts.len() < 5 {
+        return url.to_string();
+    }
+
+    format!(
+        "https://{}/{}/{}/p{}.html",
+        parts[2], parts[3], parts[4], page_num
     )
 }

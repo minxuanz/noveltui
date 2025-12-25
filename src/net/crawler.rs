@@ -21,12 +21,13 @@ pub fn fetch_novel(url: &str) -> Result<NovelPage, Box<dyn std::error::Error>> {
     let html_content = tab.get_content()?;
     let document = Html::parse_document(&html_content);
 
+    // <tilte> </title>
     let title = document
-        .select(&Selector::parse("h1").unwrap())
+        .select(&Selector::parse("title").unwrap())
         .next()
         .map(|e| e.text().collect())
         .unwrap_or_else(|| "Untitled".to_string());
-
+    // <p> </p>
     let p_selector = Selector::parse("article.page-content p").unwrap();
     let content: Vec<String> = document
         .select(&p_selector)

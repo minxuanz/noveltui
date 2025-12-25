@@ -5,10 +5,12 @@ on:
     branches: 
       - "main"
       - "dev"
+      - "net_reader"
   pull_request:
     branches:
       - "main"
       - "dev"
+      - "net_reader"
 
 env:
   CARGO_TERM_COLOR: always
@@ -16,6 +18,13 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: cargo build --release --verbose
+
+  build:
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - name: Build

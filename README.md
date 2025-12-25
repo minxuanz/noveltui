@@ -25,7 +25,7 @@ Run the application with a text file path:
 
 ```bash
 ./noveltui path/to/your/novel.txt
-# dzstui can read from html(WIP)
+# dzstui can read from website (WIP)
 # Require chrome 
 ./dzstui --url your url
 ```
@@ -59,6 +59,10 @@ The app automatically parses chapter titles using regex patterns:
 ![Main Interface](./assets/image3.png)
 
 ![Bookmark Menu](./assets/image1.png)
+
+![dzstui](./assets/dzs.png) 
+
+![dzstui](./assets/dzs2.png) 
 
 ## Contributing
 

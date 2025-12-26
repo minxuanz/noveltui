@@ -12,27 +12,32 @@ A terminal-based novel reader, Powered by https://github.com/ratatui/ratatui
 
 ### Build from Source
 ```bash
-git clone https://github.com/yourusername/noveltui.git
+git clone https://github.com/minxuanz/noveltui.git
 cd noveltui
 cargo build --release
 ```
 
-The binary will be available at `target/release/noveltui`.
+The binary will be available at `target/release/noveltui` for local read,
+`target/release/dzstui` for online read.
 
 ## Usage
 
-Run the application with a text file path:
-
 ```bash
 ./noveltui path/to/your/novel.txt
-# dzstui can read from website (WIP)
-# Require chrome 
-./dzstui --url your url
+# need install chrome 
+./dzstui --url website
+# e.g.
+./dzstui --url https://ixdzs8.com/read/508569/p1.html
 ```
 
-### Supported File Formats
+### Supported 
+#### noveltui (local read)
 - Plain text files (.txt)
 - Various encodings (UTF-8, GBK, GB2312, etc.)
+
+#### dzstui (online read) (WIP)
+- Require: chrome
+- Now only support ixdzs8.com
 
 ### Chapter Detection
 The app automatically parses chapter titles using regex patterns:

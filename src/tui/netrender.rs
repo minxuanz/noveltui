@@ -69,7 +69,7 @@ pub fn render_ui(frame: &mut Frame, state: &mut AppState, content: &[String], ti
         // Footer 左侧：提示 Jump To
         frame.render_widget(
             Paragraph::new("  JUMP TO")
-                .style(Style::default().bg(Color::DarkGray).fg(Color::Black).bold()),
+                .style(Style::default().bg(Color::White).fg(Color::DarkGray).bold()),
             foot_chunks[0],
         );
 

@@ -103,6 +103,11 @@ fn run_loop(
                                 state.show_input = false;
                                 state.input_buffer.clear();
                             }
+                            KeyCode::Char('q') => {
+                                state.show_input = false;
+                                state.input_buffer.clear();
+                                break;
+                            }
                             _ => {}
                         }
                     }

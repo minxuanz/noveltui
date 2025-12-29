@@ -39,10 +39,13 @@ pub struct AppState {
 
     // Delete Confirmation Dialog
     pub show_delete_confirmation: bool,
+
+    // page size for content display
+    pub page_size: usize,
 }
 
 impl AppState {
-    pub fn new(show_title: bool, speed: f64) -> Self {
+    pub fn new(show_title: bool, speed: f64, page_size: usize) -> Self {
         let mut toc_state = ListState::default();
         toc_state.select(Some(0));
         let mut content_state = ListState::default();
@@ -64,6 +67,7 @@ impl AppState {
             cached_bookmarks: Vec::new(),
             active_chapter_index: 0,
             show_delete_confirmation: false,
+            page_size,
         }
     }
 

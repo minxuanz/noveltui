@@ -310,9 +310,9 @@ fn render_help(frame: &mut Frame, area: Rect) {
     let inner_area = side_padding[1];
 
     let help_groups = [
-        " k/↑ Up          j/↓ Down             h/←   Left         l/→   Right",
-        " m   Toggle Mark M   Clear All Marks  q/esc Quit         Q     Mark&Quit",
-        " b   Bookmarks   t   TOC              s     Title&Footer Space AutoScroll",
+        " k/↑ Up           j/↓ Down             h/←   Left          l/→    Right       PgUp ",
+        " m   Toggle Mark  M   Clear All Marks  q/esc Quit          Q      Mark&Quit   PgDn ",
+        " b   Bookmarks    t   TOC              s     Title&Footer  Space  AutoScroll       ",
     ];
 
     let chunks = Layout::default()

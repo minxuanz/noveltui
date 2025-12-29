@@ -21,7 +21,7 @@ impl App {
     pub fn new(options: Options) -> Result<Self> {
         let lines = fs::load_content(&options.file_path)?;
         let novel = Novel::new(lines);
-        let mut state = AppState::new(!options.simple_mode, options.speed);
+        let mut state = AppState::new(!options.simple_mode, options.speed, options.page_size);
 
         // Initial Bookmark Cache
         state.refresh_bookmarks(&novel);
@@ -135,6 +135,20 @@ impl App {
 
             Action::Enter => self.on_enter(),
             Action::AutoScroll => self.state.auto_scroll = !self.state.auto_scroll,
+            Action::PageUp => {
+                let curr = self.state.content_state.selected().unwrap_or(0);
+                let page_size = self.state.page_size;
+                if curr >= page_size {
+                    self.state.content_state.select(Some(curr - page_size));
+                } else {
+                    self.state.content_state.select(Some(0));
+                }
+            }
+            Action::PageDown => {
+                let curr = self.state.content_state.selected().unwrap_or(0);
+                let page_size = self.state.page_size;
+                self.state.content_state.select(Some(curr + page_size));
+            }
             Action::None => {}
         }
         Ok(())

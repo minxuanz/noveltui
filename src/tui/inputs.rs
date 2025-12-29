@@ -22,6 +22,8 @@ pub enum Action {
     AutoScroll,
     ConfirmDelete,
     CancelDelete,
+    PageUp,
+    PageDown,
     None,
 }
 
@@ -53,6 +55,8 @@ pub fn resolve_event(ev: Event, state: &AppState) -> Action {
             KeyCode::Char('y') | KeyCode::Char('Y') if state.show_delete_confirmation => {
                 Action::ConfirmDelete
             }
+            KeyCode::PageUp => Action::PageUp,
+            KeyCode::PageDown => Action::PageDown,
             _ => Action::None,
         },
         _ => Action::None,

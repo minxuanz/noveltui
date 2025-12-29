@@ -10,6 +10,10 @@ use std::thread;
 struct Args {
     #[arg(short, long)]
     url: String,
+
+    // Set the number of rows per page (default: 8)
+    #[arg(short, long, default_value_t = 8)]
+    page_size: usize,
 }
 
 struct SharedData {
@@ -28,13 +32,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     let mut terminal = ratatui::init();
 
-    // 初始化状态，增加 show_input 和 input_buffer
     let mut state = AppState {
         content_state: ratatui::widgets::ListState::default(),
         loading_success: false,
         is_loading: true,
         show_input: false,
         input_buffer: String::new(),
+        page_size: args.page_size,
     };
     state.content_state.select(Some(0));
 
@@ -144,6 +148,20 @@ fn run_loop(
                             KeyCode::Char('r') => {
                                 load_chapter(Arc::clone(&data), current_url.clone());
                                 state.content_state.select(Some(0));
+                            }
+                            KeyCode::PageUp => {
+                                let i = state.content_state.selected().unwrap_or(0);
+                                let page_size = state.page_size;
+                                if i >= page_size {
+                                    state.content_state.select(Some(i - page_size));
+                                } else {
+                                    state.content_state.select(Some(0));
+                                }
+                            }
+                            KeyCode::PageDown => {
+                                let i = state.content_state.selected().unwrap_or(0);
+                                let page_size = state.page_size;
+                                state.content_state.select(Some(i + page_size));
                             }
                             _ => {}
                         }

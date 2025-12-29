@@ -27,4 +27,8 @@ pub struct Options {
     /// Show bookmark menu in CLI mode and exit
     #[arg(long)]
     pub show_bookmark: bool,
+
+    /// Set the number of rows per page (default: 8)
+    #[arg(short, long, value_name = "NUM", default_value_t = 8)]
+    pub page_size: usize,
 }

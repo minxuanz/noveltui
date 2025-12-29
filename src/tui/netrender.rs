@@ -9,6 +9,8 @@ pub struct AppState {
     pub show_input: bool,
     // 新增：输入框的内容
     pub input_buffer: String,
+    // page size for content display
+    pub page_size: usize,
 }
 
 pub fn render_ui(frame: &mut Frame, state: &mut AppState, content: &[String], title: &str) {
@@ -28,7 +30,7 @@ pub fn render_ui(frame: &mut Frame, state: &mut AppState, content: &[String], ti
             let wrapped = textwrap::wrap(line, inner_width);
             let mut joined = wrapped
                 .iter()
-                .map(|c| c.to_string()) 
+                .map(|c| c.to_string())
                 .collect::<Vec<_>>()
                 .join("\n");
             joined.push_str("\n\n");
@@ -121,9 +123,12 @@ pub fn render_ui(frame: &mut Frame, state: &mut AppState, content: &[String], ti
         // );
 
         frame.render_widget(
-            Paragraph::new(format!("{}/{}  [/] Jump [n] Next [p] Prev [q] Quit [r] Refresh", current_line, total_lines))
-                .alignment(Alignment::Right)
-                .style(Style::default().fg(Color::Gray)),
+            Paragraph::new(format!(
+                "{}/{}  [/] Jump [n] Next [p] Prev [q] Quit [r] Refresh",
+                current_line, total_lines
+            ))
+            .alignment(Alignment::Right)
+            .style(Style::default().fg(Color::Gray)),
             foot_chunks[2],
         );
     }

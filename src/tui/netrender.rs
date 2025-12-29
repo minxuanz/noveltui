@@ -21,14 +21,14 @@ pub fn render_ui(frame: &mut Frame, state: &mut AppState, content: &[String], ti
         .split(frame.area());
 
     // 1. Content Rendering
-    let inner_width = chunks[0].width.saturating_sub(4) as usize;
+    let inner_width = chunks[0].width.saturating_sub(7) as usize;
     let items: Vec<ListItem> = content
         .iter()
         .map(|line| {
             let wrapped = textwrap::wrap(line, inner_width);
             let mut joined = wrapped
                 .iter()
-                .map(|c| c.to_string())
+                .map(|c| c.to_string()) 
                 .collect::<Vec<_>>()
                 .join("\n");
             joined.push_str("\n\n");

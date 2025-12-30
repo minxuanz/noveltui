@@ -38,6 +38,12 @@ impl App {
         self.handle_initial_jumps()?;
 
         while self.state.running {
+            if self.state.needs_reinit {
+                // If a suspend/resume cycle occurred, re-initialize the terminal
+                // This re-assigns the `terminal` variable that `run` holds.
+                terminal = ratatui::init();
+                self.state.needs_reinit = false; // Reset the flag
+            }
             // Render
             terminal.draw(|f| {
                 renderer::render_ui(f, &mut self.state, &self.novel, &self.options.file_path);
@@ -323,14 +329,19 @@ impl App {
     fn suspend(&mut self) -> Result<()> {
         #[cfg(unix)]
         {
+            use crossterm::terminal::{LeaveAlternateScreen};
+            use crossterm::cursor::Show;
+            // Restore terminal before suspending
             ratatui::restore();
+            // show cursor
+            crossterm::execute!(std::io::stdout(), Show, LeaveAlternateScreen)?;
             // simple shell suspend
             use signal_hook::consts::signal::SIGTSTP;
             use signal_hook::low_level::raise;
             raise(SIGTSTP).unwrap();
 
             // Resume
-            ratatui::init();
+            self.state.needs_reinit = true;
         }
         Ok(())
     }

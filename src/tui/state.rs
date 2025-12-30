@@ -42,6 +42,9 @@ pub struct AppState {
 
     // page size for content display
     pub page_size: usize,
+
+    // flag to indicate terminal needs re-initialization
+    pub needs_reinit: bool,
 }
 
 impl AppState {
@@ -68,6 +71,7 @@ impl AppState {
             active_chapter_index: 0,
             show_delete_confirmation: false,
             page_size,
+            needs_reinit: false,
         }
     }
 

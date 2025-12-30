@@ -154,14 +154,21 @@ fn render_content(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &N
         })
         .collect();
 
+    // #E3E17C
     let highlight = if state.focus == FocusArea::Content {
         Style::default()
-            .fg(Color::Black)
-            .bg(Color::Green)
-            .add_modifier(Modifier::BOLD)
+            .fg(Color::Rgb(227, 225, 124))
     } else {
         Style::default().fg(Color::DarkGray)
     };
+    // let highlight = if state.focus == FocusArea::Content {
+    //     Style::default()
+    //         .fg(Color::Black)
+    //         .bg(Color::Green)
+    //         .add_modifier(Modifier::BOLD)
+    // } else {
+    //     Style::default().fg(Color::DarkGray)
+    // };
 
     let block = Block::default()
         .borders(Borders::ALL)

@@ -48,9 +48,8 @@ pub fn render_ui(frame: &mut Frame, state: &mut AppState, content: &[String], ti
         )
         .highlight_style(
             Style::default()
-                .fg(Color::Black)
-                .bg(Color::Green)
-                .add_modifier(Modifier::BOLD),
+            // #96CEC1
+                .fg(Color::Rgb(150, 206, 193)),
         )
         .highlight_symbol(" > ");
 

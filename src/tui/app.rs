@@ -167,7 +167,7 @@ impl App {
             FocusArea::Toc => {
                 let curr = self.state.toc_state.selected().unwrap_or(0);
                 if curr > 0 {
-                    self.select_chapter(curr - 1);
+                    self.state.toc_state.select(Some(curr - 1));
                 }
             }
             FocusArea::Content => {
@@ -202,7 +202,8 @@ impl App {
             FocusArea::Toc => {
                 let curr = self.state.toc_state.selected().unwrap_or(0);
                 if curr + 1 < self.novel.chapters.len() {
-                    self.select_chapter(curr + 1);
+                    self.state.toc_state.select(Some(curr + 1));
+                    // self.select_chapter(curr + 1);
                 }
             }
             FocusArea::Content => {
@@ -250,6 +251,12 @@ impl App {
 
     fn on_enter(&mut self) {
         if self.state.focus == FocusArea::Toc {
+            self.state.active_chapter_index = self
+                .state
+                .toc_state
+                .selected()
+                .unwrap_or(self.state.active_chapter_index);
+            self.state.content_state.select(Some(0));
             self.state.focus = FocusArea::Content;
         }
     }
@@ -329,8 +336,8 @@ impl App {
     fn suspend(&mut self) -> Result<()> {
         #[cfg(unix)]
         {
-            use crossterm::terminal::{LeaveAlternateScreen};
             use crossterm::cursor::Show;
+            use crossterm::terminal::LeaveAlternateScreen;
             // Restore terminal before suspending
             ratatui::restore();
             // show cursor

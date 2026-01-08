@@ -5,21 +5,26 @@ pub struct AppState {
     pub content_state: ListState,
     pub loading_success: bool,
     pub is_loading: bool,
-    // 新增：是否处于输入模式
+    // 是否处于输入模式
     pub show_input: bool,
-    // 新增：输入框的内容
+    // 输入框的内容
     pub input_buffer: String,
     // page size for content display
     pub page_size: usize,
+    // show title
+    pub show_title: bool,
 }
 
 pub fn render_ui(frame: &mut Frame, state: &mut AppState, content: &[String], title: &str) {
+    let constraint = if state.show_input || state.show_title {
+        [Constraint::Min(1), Constraint::Length(1)]
+    } else {
+        [Constraint::Min(1), Constraint::Length(0)]
+    };
+
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Min(1),    // Main Content
-            Constraint::Length(1), // Status Bar
-        ])
+        .constraints(constraint)
         .split(frame.area());
 
     // 1. Content Rendering
@@ -38,17 +43,24 @@ pub fn render_ui(frame: &mut Frame, state: &mut AppState, content: &[String], ti
         })
         .collect();
 
+    let blocks = if state.show_title {
+        Block::default()
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
+            .title(format!(" {} ", title))
+            .border_style(Style::default().fg(Color::DarkGray))
+    } else {
+        Block::default()
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
+            .border_style(Style::default().fg(Color::DarkGray))
+    };
+
     let list = List::new(items)
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_type(BorderType::Rounded)
-                .title(format!(" {} ", title))
-                .border_style(Style::default().fg(Color::DarkGray)),
-        )
+        .block(blocks)
         .highlight_style(
             Style::default()
-            // #96CEC1
+                // #96CEC1
                 .fg(Color::Rgb(150, 206, 193)),
         )
         .highlight_symbol(" > ");
@@ -78,19 +90,18 @@ pub fn render_ui(frame: &mut Frame, state: &mut AppState, content: &[String], ti
     // 如果处于输入模式，渲染输入框
     if state.show_input {
         // Footer 左侧：提示 Jump To
-        frame.render_widget(
-            Paragraph::new("   JUMP TO")
-                .style(Style::default().fg(Color::White).bg(Color::DarkGray).bold()),
-            foot_chunks[0],
-        );
+        // frame.render_widget(
+        //     Paragraph::new("JUMP TO").style(Style::default().fg(Color::White).bold()),
+        //     foot_chunks[0],
+        // );
 
         frame.render_widget(
-            Paragraph::new(format!("Chapter: {}_", state.input_buffer))
-                .style(Style::default().fg(Color::White).bg(Color::DarkGray).bold()),
+            Paragraph::new(format!("Jump To Chapter: {}_", state.input_buffer))
+                .style(Style::default().fg(Color::White).bold()),
             foot_chunks[1],
         );
 
-        // Footer 右侧：操作提示
+        // Footer hints
         frame.render_widget(
             Paragraph::new(" [Enter] Go  [Esc] Cancel")
                 .alignment(Alignment::Right)

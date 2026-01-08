@@ -109,16 +109,16 @@ fn render_toc(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &Novel
 
     let highlight = if state.focus == FocusArea::Toc {
         Style::default()
-            .fg(Color::Black)
-            .bg(Color::Cyan)
-            .add_modifier(Modifier::BOLD)
+            // #81C7D4
+            .fg(Color::Rgb(129, 199, 212))
     } else {
-        Style::default().fg(Color::Gray)
+        Style::default().fg(Color::DarkGray)
     };
 
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(Color::DarkGray))
         .title(" TOC ");
 
     let list = List::new(items)
@@ -134,10 +134,12 @@ fn render_content(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &N
         .unwrap_or(&[]);
     let inner_width = area.width.saturating_sub(4) as usize;
 
-    let title = if let Some(meta) = novel.chapters.get(state.active_chapter_index) {
+    let title = if let Some(meta) = novel.chapters.get(state.active_chapter_index)
+        && state.show_title
+    {
         format!(" {} ", meta.title)
     } else {
-        " Content ".to_string()
+        "".to_string()
     };
     let items: Vec<ListItem> = chapter_lines
         .iter()
@@ -154,10 +156,9 @@ fn render_content(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &N
         })
         .collect();
 
-    // #E3E17C
+    // #A8D8B9
     let highlight = if state.focus == FocusArea::Content {
-        Style::default()
-            .fg(Color::Rgb(227, 225, 124))
+        Style::default().fg(Color::Rgb(168, 216, 185))
     } else {
         Style::default().fg(Color::DarkGray)
     };
@@ -173,6 +174,7 @@ fn render_content(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &N
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(Color::DarkGray))
         .title(title);
 
     let list = List::new(items)
@@ -193,11 +195,10 @@ fn render_bookmarks(frame: &mut Frame, area: Rect, state: &mut AppState) {
 
     let highlight = if state.focus == FocusArea::Bookmark {
         Style::default()
-            .fg(Color::Black)
-            .bg(Color::Magenta)
-            .add_modifier(Modifier::BOLD)
+            // #F8C3CD
+            .fg(Color::Rgb(248, 195, 205))
     } else {
-        Style::default().fg(Color::Gray)
+        Style::default().fg(Color::DarkGray)
     };
 
     let list = List::new(items)
@@ -205,6 +206,7 @@ fn render_bookmarks(frame: &mut Frame, area: Rect, state: &mut AppState) {
             Block::default()
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
+                .border_style(Style::default().fg(Color::DarkGray))
                 .title(" Bookmarks "),
         )
         .highlight_style(highlight);
@@ -240,23 +242,27 @@ fn render_footer(frame: &mut Frame, area: Rect, state: &AppState, novel: &Novel)
 
     // 1. Focus Mode Segment (Lable 居中)
     let (label, color) = match state.focus {
-        FocusArea::Toc => ("  TOC  ", Color::Cyan),
-        FocusArea::Content => ("  CONTENT  ", Color::Green),
-        FocusArea::Bookmark => (" MARKS ", Color::Magenta),
+        // #51A8DD
+        FocusArea::Toc => ("  TOC  ", Color::Rgb(81, 168, 221)),
+        // #00AA90
+        FocusArea::Content => ("  CONTENT  ", Color::Rgb(0, 170, 144)),
+        // #CB1B45
+        FocusArea::Bookmark => (" MARKS ", Color::Rgb(203, 27, 69)),
     };
 
     frame.render_widget(
         Paragraph::new(label).alignment(Alignment::Center).style(
             Style::default()
-                .fg(Color::Black)
+                .fg(Color::White)
                 .bg(color)
                 .add_modifier(Modifier::BOLD),
         ),
         layout[0],
     );
 
+    let toc_chapter_index = state.toc_state.selected().unwrap_or(state.active_chapter_index);
     // 2. Chapter Segment
-    if let Some(meta) = novel.chapters.get(state.active_chapter_index) {
+    if let Some(meta) = novel.chapters.get(toc_chapter_index) {
         frame.render_widget(
             Paragraph::new(format!(" {}", meta.title)).style(Style::default().fg(Color::White)),
             layout[1],
@@ -283,7 +289,7 @@ fn render_footer(frame: &mut Frame, area: Rect, state: &AppState, novel: &Novel)
         frame.render_widget(
             Paragraph::new(progress_text)
                 .alignment(Alignment::Right)
-                .style(Style::default().fg(Color::Green)),
+                .style(Style::default().fg(Color::White)),
             layout[3],
         );
 

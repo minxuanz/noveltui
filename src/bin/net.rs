@@ -39,6 +39,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         show_input: false,
         input_buffer: String::new(),
         page_size: args.page_size,
+        show_title: true,
     };
     state.content_state.select(Some(0));
 
@@ -148,6 +149,9 @@ fn run_loop(
                             KeyCode::Char('r') => {
                                 load_chapter(Arc::clone(&data), current_url.clone());
                                 state.content_state.select(Some(0));
+                            }
+                            KeyCode::Char('s') => {
+                                state.show_title = !state.show_title;
                             }
                             KeyCode::PageUp => {
                                 let i = state.content_state.selected().unwrap_or(0);

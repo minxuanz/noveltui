@@ -241,7 +241,10 @@ impl App {
         use FocusArea::*;
         self.state.focus = match (self.state.focus, left) {
             (Toc, false) => Content,
-            (Content, true) => Toc,
+            (Content, true) if self.state.show_toc_menu => {
+                self.state.toc_state.select(Some(self.state.active_chapter_index));
+                Toc
+            },
             (Content, false) if self.state.show_bookmark_menu => Bookmark,
             (Bookmark, true) => Content,
             // Cycles or stays

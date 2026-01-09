@@ -10,7 +10,7 @@ fn main() -> Result<()> {
     let args = Options::parse();
 
     // CLI Mode: Show bookmarks
-    if args.show_bookmark {
+    if args.show_bookmarks {
         let lines = fs::load_content(&args.file_path)?;
         let novel = Novel::new(lines);
         let bookmarks = novel.collect_bookmarks();

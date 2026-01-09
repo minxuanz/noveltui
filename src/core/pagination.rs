@@ -2,6 +2,8 @@
 use regex::Regex;
 use std::ops::Range;
 use std::sync::OnceLock;
+use clap::Parser;
+use crate::cmd::args::Options;
 
 static RE_CN: OnceLock<Regex> = OnceLock::new();
 static RE_EN: OnceLock<Regex> = OnceLock::new();
@@ -17,10 +19,23 @@ pub struct ChapterMetadata {
 impl ChapterMetadata {
     /// Scans the raw lines and identifies chapter boundaries.
     pub fn parse_chapters(lines: &[String]) -> Vec<ChapterMetadata> {
-        let re_cn = RE_CN.get_or_init(|| {
-            Regex::new(r"^\s*第\s*[0-9零一二三四五六七八九十百千两〇]+\s*章").unwrap()
+        let default_re_cn = RE_CN.get_or_init(|| {
+            Regex::new(r"^\s*第\s*[0-9零一二三四五六七八九十百千两〇]+\s*[章|话]").unwrap()
         });
-        let re_en = RE_EN.get_or_init(|| Regex::new(r"(?i)^\s*chapter\s*(?:\d+|[a-z]+)").unwrap());
+        let default_re_en = RE_EN.get_or_init(|| Regex::new(r"(?i)^\s*chapter\s*(?:\d+|[a-z]+)").unwrap());
+
+        let args: Options = Options::parse();
+        let re_cn = if let Some(re_str) = args.regex.as_ref() {
+            Regex::new(re_str).unwrap_or_else(|_| default_re_cn.clone())
+        } else {
+            default_re_cn.clone()
+        };
+
+        let re_en = if let Some(re_str) = args.regex.as_ref() {
+            Regex::new(re_str).unwrap_or_else(|_| default_re_en.clone())
+        } else {
+            default_re_en.clone()
+        };
 
         let mut chapters = Vec::new();
 

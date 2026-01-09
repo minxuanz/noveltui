@@ -44,6 +44,8 @@ The app automatically parses chapter titles using regex patterns:
 - Chinese: `第[数字]章` (e.g., 第1章, 第一章)
 - English: `Chapter [number]` (e.g., Chapter 1, CHAPTER SIX)
 
+You can pass `--regex <YOUR CUSTOM REGEX>` to parse title.
+
 ## Keybindings
 
 | Key          | Action                          |

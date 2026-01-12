@@ -23,8 +23,8 @@ struct SharedData {
     success: bool,
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+// #[tokio::main]
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     if !args.url.starts_with("https://ixdzs") {
         eprintln!("Error: URL don't supported.");
@@ -74,7 +74,7 @@ fn run_loop(
             (d.content.clone(), d.title.clone())
         };
 
-        terminal.draw(|f| render_ui(f, state, &display_content, &display_title))?;
+        terminal.draw(|f| render_ui(f, state, &display_content, &display_title, &current_url))?;
 
         if event::poll(std::time::Duration::from_millis(16))? {
             if let Event::Key(key) = event::read()? {

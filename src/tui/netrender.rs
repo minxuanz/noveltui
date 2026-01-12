@@ -15,7 +15,7 @@ pub struct AppState {
     pub show_title: bool,
 }
 
-pub fn render_ui(frame: &mut Frame, state: &mut AppState, content: &[String], title: &str) {
+pub fn render_ui(frame: &mut Frame, state: &mut AppState, content: &[String], title: &str, url: &str) {
     let constraint = if state.show_input || state.show_title {
         [Constraint::Min(1), Constraint::Length(1)]
     } else {
@@ -67,7 +67,7 @@ pub fn render_ui(frame: &mut Frame, state: &mut AppState, content: &[String], ti
 
     frame.render_stateful_widget(list, chunks[0], &mut state.content_state);
 
-    // 2. Footer Rendering (修改逻辑)
+    // 2. Footer Rendering
     let side_padding = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
@@ -87,14 +87,7 @@ pub fn render_ui(frame: &mut Frame, state: &mut AppState, content: &[String], ti
         ])
         .split(inner_area);
 
-    // 如果处于输入模式，渲染输入框
     if state.show_input {
-        // Footer 左侧：提示 Jump To
-        // frame.render_widget(
-        //     Paragraph::new("JUMP TO").style(Style::default().fg(Color::White).bold()),
-        //     foot_chunks[0],
-        // );
-
         frame.render_widget(
             Paragraph::new(format!("Jump To Chapter: {}_", state.input_buffer))
                 .style(Style::default().fg(Color::White).bold()),
@@ -125,12 +118,12 @@ pub fn render_ui(frame: &mut Frame, state: &mut AppState, content: &[String], ti
             foot_chunks[0],
         );
 
-        // frame.render_widget(
-        //     Paragraph::new(progress_text)
-        //         .alignment(Alignment::Right)
-        //         .style(Style::default().fg(Color::Gray)),
-        //     foot_chunks[1],
-        // );
+        frame.render_widget(
+            Paragraph::new(format!(" URL: {} ", url))
+                .alignment(Alignment::Left)
+                .style(Style::default().fg(Color::Gray)),
+            foot_chunks[1],
+        );
 
         frame.render_widget(
             Paragraph::new(format!(

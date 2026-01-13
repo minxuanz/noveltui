@@ -100,9 +100,8 @@ impl App {
             Action::ToggleBookmarkMenu => {
                 self.state.show_bookmark_menu = !self.state.show_bookmark_menu;
                 self.state.focus = if self.state.show_bookmark_menu {
+                    self.state.show_toc_menu = false;
                     FocusArea::Bookmark
-                } else if self.state.show_toc_menu {
-                    FocusArea::Toc
                 } else {
                     FocusArea::Content
                 };
@@ -110,9 +109,11 @@ impl App {
             Action::ToggleTocMenu => {
                 self.state.show_toc_menu = !self.state.show_toc_menu;
                 self.state.focus = if self.state.show_toc_menu {
+                    // highlight to current chapter
+                    let curr = self.state.active_chapter_index;
+                    self.state.toc_state.select(Some(curr));
+                    self.state.show_bookmark_menu = false;
                     FocusArea::Toc
-                } else if self.state.show_bookmark_menu {
-                    FocusArea::Bookmark
                 } else {
                     FocusArea::Content
                 };
@@ -130,9 +131,6 @@ impl App {
             Action::CancelDelete => {
                 self.state.show_delete_confirmation = false;
             }
-
-            Action::FocusLeft => self.switch_focus(true),
-            Action::FocusRight => self.switch_focus(false),
 
             Action::MoveUp => self.move_cursor_up(),
             Action::MoveDown => self.move_cursor_down(),
@@ -179,6 +177,11 @@ impl App {
                 let curr = self.state.toc_state.selected().unwrap_or(0);
                 if curr > 0 {
                     self.state.toc_state.select(Some(curr - 1));
+                } else {
+                    // move last
+                    self.state
+                        .toc_state
+                        .select(Some(self.novel.chapters.len() - 1));
                 }
             }
             FocusArea::Content => {
@@ -202,7 +205,12 @@ impl App {
                 let curr = self.state.bookmark_state.selected().unwrap_or(0);
                 if curr > 0 {
                     self.state.bookmark_state.select(Some(curr - 1));
-                    self.jump_to_bookmark();
+                    //self.jump_to_bookmark();
+                } else {
+                    // move last
+                    self.state
+                        .bookmark_state
+                        .select(Some(self.state.cached_bookmarks.len() - 1));
                 }
             }
         }
@@ -214,7 +222,9 @@ impl App {
                 let curr = self.state.toc_state.selected().unwrap_or(0);
                 if curr + 1 < self.novel.chapters.len() {
                     self.state.toc_state.select(Some(curr + 1));
-                    // self.select_chapter(curr + 1);
+                } else {
+                    // move first
+                    self.state.toc_state.select(Some(0));
                 }
             }
             FocusArea::Content => {
@@ -236,7 +246,9 @@ impl App {
                 let curr = self.state.bookmark_state.selected().unwrap_or(0);
                 if curr + 1 < self.state.cached_bookmarks.len() {
                     self.state.bookmark_state.select(Some(curr + 1));
-                    self.jump_to_bookmark();
+                } else {
+                    // move first
+                    self.state.bookmark_state.select(Some(0));
                 }
             }
         }
@@ -248,23 +260,6 @@ impl App {
         self.state.content_state.select(Some(0));
     }
 
-    fn switch_focus(&mut self, left: bool) {
-        use FocusArea::*;
-        self.state.focus = match (self.state.focus, left) {
-            (Toc, false) => Content,
-            (Content, true) if self.state.show_toc_menu => {
-                self.state
-                    .toc_state
-                    .select(Some(self.state.active_chapter_index));
-                Toc
-            }
-            (Content, false) if self.state.show_bookmark_menu => Bookmark,
-            (Bookmark, true) => Content,
-            // Cycles or stays
-            (s, _) => s,
-        };
-    }
-
     fn on_enter(&mut self) {
         if self.state.focus == FocusArea::Toc {
             self.state.active_chapter_index = self
@@ -272,7 +267,12 @@ impl App {
                 .toc_state
                 .selected()
                 .unwrap_or(self.state.active_chapter_index);
+            self.state.show_toc_menu = false;
             self.state.content_state.select(Some(0));
+            self.state.focus = FocusArea::Content;
+        } else if self.state.focus == FocusArea::Bookmark {
+            self.state.show_bookmark_menu = false;
+            self.jump_to_bookmark();
             self.state.focus = FocusArea::Content;
         }
     }
@@ -280,7 +280,7 @@ impl App {
     // --- Bookmark Logic ---
 
     fn toggle_bookmark(&mut self) {
-        if self.state.focus == FocusArea::Toc {
+        if self.state.focus == FocusArea::Toc || self.state.focus == FocusArea::Bookmark {
             return;
         }
 

@@ -4,8 +4,8 @@ use ratatui::widgets::ListState;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Default)]
 pub enum FocusArea {
-    #[default]
     Toc,
+    #[default]
     Content,
     Bookmark,
 }
@@ -56,7 +56,7 @@ impl AppState {
 
         Self {
             running: false,
-            focus: FocusArea::Toc,
+            focus: FocusArea::Content,
             toc_state,
             content_state,
             bookmark_state: ListState::default(),

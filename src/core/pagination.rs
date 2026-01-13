@@ -40,13 +40,10 @@ impl ChapterMetadata {
         let mut chapters = Vec::new();
 
         for (i, line) in lines.iter().enumerate() {
-            let is_header = if line.len() > 100 {
+            let is_header = if line.len() > 70 {
                 false
             } else {
-                let trimmed = line.trim_start();
-                (trimmed.starts_with('第') && re_cn.is_match(line))
-                    || ((trimmed.starts_with("Chapter") || trimmed.starts_with("CHAPTER"))
-                        && re_en.is_match(line))
+                re_cn.is_match(line) || re_en.is_match(line)
             };
 
             if is_header {

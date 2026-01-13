@@ -15,7 +15,13 @@ pub struct AppState {
     pub show_title: bool,
 }
 
-pub fn render_ui(frame: &mut Frame, state: &mut AppState, content: &[String], title: &str, url: &str) {
+pub fn render_ui(
+    frame: &mut Frame,
+    state: &mut AppState,
+    content: &[String],
+    title: &str,
+    url: &str,
+) {
     let constraint = if state.show_input || state.show_title {
         [Constraint::Min(1), Constraint::Length(1)]
     } else {

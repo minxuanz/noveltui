@@ -1,9 +1,9 @@
 // src/core/pagination.rs
+use crate::cmd::args::Options;
+use clap::Parser;
 use regex::Regex;
 use std::ops::Range;
 use std::sync::OnceLock;
-use clap::Parser;
-use crate::cmd::args::Options;
 
 static RE_CN: OnceLock<Regex> = OnceLock::new();
 static RE_EN: OnceLock<Regex> = OnceLock::new();
@@ -22,7 +22,8 @@ impl ChapterMetadata {
         let default_re_cn = RE_CN.get_or_init(|| {
             Regex::new(r"^\s*第\s*[0-9零一二三四五六七八九十百千两〇]+\s*[章|话]").unwrap()
         });
-        let default_re_en = RE_EN.get_or_init(|| Regex::new(r"(?i)^\s*chapter\s*(?:\d+|[a-z]+)").unwrap());
+        let default_re_en =
+            RE_EN.get_or_init(|| Regex::new(r"(?i)^\s*chapter\s*(?:\d+|[a-z]+)").unwrap());
 
         let args: Options = Options::parse();
         let re_cn = if let Some(re_str) = args.regex.as_ref() {

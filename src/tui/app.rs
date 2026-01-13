@@ -101,11 +101,22 @@ impl App {
                 self.state.show_bookmark_menu = !self.state.show_bookmark_menu;
                 self.state.focus = if self.state.show_bookmark_menu {
                     FocusArea::Bookmark
+                } else if self.state.show_toc_menu {
+                    FocusArea::Toc
                 } else {
                     FocusArea::Content
                 };
             }
-            Action::ToggleTocMenu => self.state.show_toc_menu = !self.state.show_toc_menu,
+            Action::ToggleTocMenu => {
+                self.state.show_toc_menu = !self.state.show_toc_menu;
+                self.state.focus = if self.state.show_toc_menu {
+                    FocusArea::Toc
+                } else if self.state.show_bookmark_menu {
+                    FocusArea::Bookmark
+                } else {
+                    FocusArea::Content
+                };
+            }
             Action::ToggleTitleFooter => self.state.show_title = !self.state.show_title,
             Action::ToggleBookmarkAtCursor => self.toggle_bookmark(),
             Action::ClearAllBookmarks => self.state.show_delete_confirmation = true,
@@ -242,9 +253,11 @@ impl App {
         self.state.focus = match (self.state.focus, left) {
             (Toc, false) => Content,
             (Content, true) if self.state.show_toc_menu => {
-                self.state.toc_state.select(Some(self.state.active_chapter_index));
+                self.state
+                    .toc_state
+                    .select(Some(self.state.active_chapter_index));
                 Toc
-            },
+            }
             (Content, false) if self.state.show_bookmark_menu => Bookmark,
             (Bookmark, true) => Content,
             // Cycles or stays

@@ -9,10 +9,17 @@ fn main() -> Result<()> {
     color_eyre::install()?;
     let args = Options::parse();
 
+    let lines = match fs::load_content(&args.file_path) {
+        Ok(lines) => lines,
+        Err(e) => {
+            eprintln!("{}: {}", args.file_path.display(), e);
+            std::process::exit(1);
+        }
+    };
+
+    let novel = Novel::new(lines);
     // CLI Mode: Show bookmarks
     if args.show_bookmarks {
-        let lines = fs::load_content(&args.file_path)?;
-        let novel = Novel::new(lines);
         let bookmarks = novel.collect_bookmarks();
 
         if bookmarks.is_empty() {

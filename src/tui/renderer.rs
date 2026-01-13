@@ -20,7 +20,6 @@ pub fn render_ui(frame: &mut Frame, state: &mut AppState, novel: &Novel, file_pa
     render_middle_section(frame, chunks[mid_area_idx], state, novel);
 
     let footer_idx = if state.show_title { 2 } else { 1 };
-
     if state.show_title {
         render_footer(frame, chunks[footer_idx], state, novel);
     }
@@ -37,14 +36,14 @@ pub fn render_ui(frame: &mut Frame, state: &mut AppState, novel: &Novel, file_pa
 fn get_main_layout(area: Rect, state: &AppState) -> Vec<Rect> {
     let mut constraints = Vec::new();
     if state.show_title {
-        constraints.push(Constraint::Length(1));
+        constraints.push(Constraint::Length(1)); // Title
     }
-    constraints.push(Constraint::Min(1));
+    constraints.push(Constraint::Min(1)); // Content
     if state.show_title {
-        constraints.push(Constraint::Length(1));
+        constraints.push(Constraint::Length(1)); // Footer
     }
     if state.show_help {
-        constraints.push(Constraint::Length(4));
+        constraints.push(Constraint::Length(4)); // Help
     }
 
     Layout::default()
@@ -52,6 +51,40 @@ fn get_main_layout(area: Rect, state: &AppState) -> Vec<Rect> {
         .constraints(constraints)
         .split(area)
         .to_vec()
+}
+
+fn render_middle_section(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &Novel) {
+    render_content(frame, area, state, novel);
+
+    if state.show_toc_menu {
+        let popup_area = centered_rect(60, 70, area);
+        render_toc(frame, popup_area, state, novel);
+    }
+
+    if state.show_bookmark_menu {
+        let popup_area = centered_rect(60, 70, area);
+        render_bookmarks(frame, popup_area, state);
+    }
+}
+
+fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
+    let popup_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage((100 - percent_y) / 2),
+            Constraint::Percentage(percent_y),
+            Constraint::Percentage((100 - percent_y) / 2),
+        ])
+        .split(r);
+
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage((100 - percent_x) / 2),
+            Constraint::Percentage(percent_x),
+            Constraint::Percentage((100 - percent_x) / 2),
+        ])
+        .split(popup_layout[1])[1]
 }
 
 fn render_title(frame: &mut Frame, area: Rect, path: &Path) {
@@ -69,48 +102,18 @@ fn render_title(frame: &mut Frame, area: Rect, path: &Path) {
     frame.render_widget(p, area);
 }
 
-fn render_middle_section(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &Novel) {
-    let mut constraints = vec![];
-
-    if state.show_toc_menu {
-        constraints.push(Constraint::Percentage(10));
-    }
-    constraints.push(Constraint::Min(1));
-    if state.show_bookmark_menu {
-        constraints.push(Constraint::Percentage(15));
-    }
-
-    let chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints(constraints)
-        .split(area);
-
-    let mut chunk_idx = 0;
-
-    if state.show_toc_menu {
-        render_toc(frame, chunks[chunk_idx], state, novel);
-        chunk_idx += 1;
-    }
-
-    render_content(frame, chunks[chunk_idx], state, novel);
-    chunk_idx += 1;
-
-    if state.show_bookmark_menu {
-        render_bookmarks(frame, chunks[chunk_idx], state);
-    }
-}
-
 fn render_toc(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &Novel) {
+    frame.render_widget(Clear, area); // 清理背景
+
     let items: Vec<ListItem> = novel
         .chapters
         .iter()
         .map(|c| ListItem::new(c.title.clone()))
         .collect();
 
+    let theme_color = Color::Rgb(129, 199, 212); // #81C7D4
     let highlight = if state.focus == FocusArea::Toc {
-        Style::default()
-            // #81C7D4
-            .fg(Color::Rgb(129, 199, 212))
+        Style::default().fg(theme_color)
     } else {
         Style::default().fg(Color::DarkGray)
     };
@@ -118,13 +121,13 @@ fn render_toc(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &Novel
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(Color::DarkGray))
-        .title(" TOC ");
+        .border_style(Style::default().fg(theme_color))
+        .title(" 目录 (TOC) ");
 
     let list = List::new(items)
         .block(block)
         .highlight_style(highlight)
-        .highlight_symbol(" ");
+        .highlight_symbol(" > ");
     frame.render_stateful_widget(list, area, &mut state.toc_state);
 }
 
@@ -141,6 +144,7 @@ fn render_content(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &N
     } else {
         "".to_string()
     };
+
     let items: Vec<ListItem> = chapter_lines
         .iter()
         .map(|line| {
@@ -150,26 +154,16 @@ fn render_content(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &N
                 .map(|c| c.to_string())
                 .collect::<Vec<_>>()
                 .join("\n");
-
             joined.push_str("\n\n");
             ListItem::new(Text::from(joined))
         })
         .collect();
 
-    // #A8D8B9
     let highlight = if state.focus == FocusArea::Content {
         Style::default().fg(Color::Rgb(168, 216, 185))
     } else {
         Style::default().fg(Color::DarkGray)
     };
-    // let highlight = if state.focus == FocusArea::Content {
-    //     Style::default()
-    //         .fg(Color::Black)
-    //         .bg(Color::Green)
-    //         .add_modifier(Modifier::BOLD)
-    // } else {
-    //     Style::default().fg(Color::DarkGray)
-    // };
 
     let block = Block::default()
         .borders(Borders::ALL)
@@ -186,6 +180,8 @@ fn render_content(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &N
 }
 
 fn render_bookmarks(frame: &mut Frame, area: Rect, state: &mut AppState) {
+    frame.render_widget(Clear, area); // 清理背景
+
     let items: Vec<ListItem> = state
         .cached_bookmarks
         .iter()
@@ -193,10 +189,9 @@ fn render_bookmarks(frame: &mut Frame, area: Rect, state: &mut AppState) {
         .map(|(i, b)| ListItem::new(format!("{:02}. {}", i + 1, b.content)))
         .collect();
 
+    let theme_color = Color::Rgb(248, 195, 205); // #F8C3CD
     let highlight = if state.focus == FocusArea::Bookmark {
-        Style::default()
-            // #F8C3CD
-            .fg(Color::Rgb(248, 195, 205))
+        Style::default().fg(theme_color)
     } else {
         Style::default().fg(Color::DarkGray)
     };
@@ -206,47 +201,32 @@ fn render_bookmarks(frame: &mut Frame, area: Rect, state: &mut AppState) {
             Block::default()
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
-                .border_style(Style::default().fg(Color::DarkGray))
-                .title(" Bookmarks "),
+                .border_style(Style::default().fg(theme_color))
+                .title(" 书签 (Bookmarks) "),
         )
-        .highlight_style(highlight);
+        .highlight_style(highlight)
+        .highlight_symbol(" ● ");
 
     frame.render_stateful_widget(list, area, &mut state.bookmark_state);
 }
 
 fn render_footer(frame: &mut Frame, area: Rect, state: &AppState, novel: &Novel) {
-    // 渲染背景
     frame.render_widget(Block::default().style(Style::default()), area);
-
-    let side_padding = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Length(1),
-            Constraint::Min(1),
-            Constraint::Length(1),
-        ])
-        .split(area);
-
-    let inner_area = side_padding[1];
 
     let layout = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
-            Constraint::Length(11), // Focus Mode
+            Constraint::Length(12), // Focus Mode
             Constraint::Min(1),     // Chapter Name
             Constraint::Length(15), // Auto Scroll
-            Constraint::Length(25), // Progress & Total
-            Constraint::Length(10), // Help Hint
+            Constraint::Length(25), // Progress
+            Constraint::Length(10), // Help
         ])
-        .split(inner_area);
+        .split(area);
 
-    // 1. Focus Mode Segment (Lable 居中)
     let (label, color) = match state.focus {
-        // #51A8DD
         FocusArea::Toc => ("  TOC  ", Color::Rgb(81, 168, 221)),
-        // #00AA90
         FocusArea::Content => ("  CONTENT  ", Color::Rgb(0, 170, 144)),
-        // #CB1B45
         FocusArea::Bookmark => (" MARKS ", Color::Rgb(203, 27, 69)),
     };
 
@@ -260,40 +240,37 @@ fn render_footer(frame: &mut Frame, area: Rect, state: &AppState, novel: &Novel)
         layout[0],
     );
 
-    let toc_chapter_index = state.toc_state.selected().unwrap_or(state.active_chapter_index);
-    // 2. Chapter Segment
-    if let Some(meta) = novel.chapters.get(toc_chapter_index) {
+    let toc_idx = state
+        .toc_state
+        .selected()
+        .unwrap_or(state.active_chapter_index);
+    if let Some(meta) = novel.chapters.get(toc_idx) {
         frame.render_widget(
             Paragraph::new(format!(" {}", meta.title)).style(Style::default().fg(Color::White)),
             layout[1],
         );
 
-        // 3. Auto Scroll Segment
         if state.auto_scroll {
-            let speed = format!(" {}ms", state.auto_scroll_speed_ms);
             frame.render_widget(
-                Paragraph::new(speed)
+                Paragraph::new(format!(" {}ms", state.auto_scroll_speed_ms))
                     .alignment(Alignment::Center)
                     .style(Style::default().fg(Color::Yellow)),
                 layout[2],
             );
         }
 
-        // 4. Percentage & Line Segment
         let current_line = state.content_state.selected().unwrap_or(0);
         let global_line = meta.range.start + current_line + 1;
         let total = novel.lines.len();
         let progress = (global_line as f64 / total as f64 * 100.0) as usize;
 
-        let progress_text = format!(" {}%  {}/{} ", progress, global_line, total);
         frame.render_widget(
-            Paragraph::new(progress_text)
+            Paragraph::new(format!(" {}%  {}/{} ", progress, global_line, total))
                 .alignment(Alignment::Right)
                 .style(Style::default().fg(Color::White)),
             layout[3],
         );
 
-        // 5. Help Hint
         frame.render_widget(
             Paragraph::new(" ? Help ")
                 .alignment(Alignment::Center)
@@ -304,23 +281,10 @@ fn render_footer(frame: &mut Frame, area: Rect, state: &AppState, novel: &Novel)
 }
 
 fn render_help(frame: &mut Frame, area: Rect) {
-    // 渲染边框
     let block = Block::default()
         .borders(Borders::TOP)
         .border_style(Style::default().fg(Color::DarkGray));
-
     frame.render_widget(block, area);
-
-    let side_padding = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Length(1),
-            Constraint::Min(1),
-            Constraint::Length(1),
-        ])
-        .split(area);
-
-    let inner_area = side_padding[1];
 
     let help_groups = [
         " k/↑ Up           j/↓ Down             h/←   Left          l/→    Right       PgUp ",
@@ -336,64 +300,46 @@ fn render_help(frame: &mut Frame, area: Rect) {
             Constraint::Length(1),
             Constraint::Length(1),
         ])
-        .split(inner_area);
+        .split(area);
 
     for (i, keys) in help_groups.iter().enumerate() {
-        let line = Line::from(vec![Span::styled(*keys, Style::default().fg(Color::Gray))]);
-        // 从 chunks[1] 开始渲染，避开边框
         frame.render_widget(
-            Paragraph::new(line).alignment(Alignment::Left),
+            Paragraph::new(Line::from(vec![Span::styled(
+                *keys,
+                Style::default().fg(Color::Gray),
+            )])),
             chunks[i + 1],
         );
     }
 }
 
 fn render_delete_confirmation(frame: &mut Frame, area: Rect) {
-    let dialog_width = 50;
-    let dialog_height = 4;
-
-    let x = (area.width.saturating_sub(dialog_width)) / 2;
-    let y = (area.height.saturating_sub(dialog_height)) / 2;
-
-    let dialog_area = Rect {
-        x,
-        y,
-        width: dialog_width.min(area.width),
-        height: dialog_height.min(area.height),
-    };
-
+    let dialog_area = centered_rect(30, 20, area);
     frame.render_widget(Clear, dialog_area);
 
     let block = Block::default()
-        //.borders(Borders::ALL)
-        //.border_type(BorderType::Rounded)
-        //.title(" Confirm ")
-        .title_alignment(Alignment::Center)
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(Color::Green));
-
+    //frame.render_widget(block, dialog_area);
+    let inner_area = block.inner(dialog_area);
     frame.render_widget(block, dialog_area);
-
-    let inner = Rect {
-        x: dialog_area.x + 1,
-        y: dialog_area.y + 1,
-        width: dialog_area.width.saturating_sub(2),
-        height: dialog_area.height.saturating_sub(2),
-    };
 
     let layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(1), Constraint::Min(1)])
-        .split(inner);
+        .split(inner_area);
+        // .split(Rect {
+        //     x: dialog_area.x + 1,
+        //     y: dialog_area.y + 1,
+        //     width: dialog_area.width - 2,
+        //     height: dialog_area.height - 2,
+        // });
 
-    // Message
     frame.render_widget(
-        Paragraph::new("Delete all bookmarks?")
-            .alignment(Alignment::Center)
-            .style(Style::default().fg(Color::White)),
+        Paragraph::new("Delete all bookmarks?").alignment(Alignment::Center),
         layout[0],
     );
-
-    // Buttons
     let buttons = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
@@ -405,7 +351,6 @@ fn render_delete_confirmation(frame: &mut Frame, area: Rect) {
             .style(Style::default().fg(Color::DarkGray)),
         buttons[0],
     );
-
     frame.render_widget(
         Paragraph::new(" No (N) ")
             .alignment(Alignment::Center)

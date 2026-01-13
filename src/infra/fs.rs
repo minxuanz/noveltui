@@ -7,13 +7,17 @@ use std::path::Path;
 pub fn load_content(path: &Path) -> Result<Vec<String>> {
     let content = match fs::read_to_string(path) {
         Ok(s) => s,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            // Early return if the file is strictly missing
+            return Err(e.into());
+        }
         Err(_) => {
+            // Path exists, but it's likely not valid UTF-8
             let bytes = fs::read(path)?;
             codec::decode_bytes(&bytes)
         }
     };
 
-    // Split into lines immediately to form the core data structure
     Ok(content.lines().map(|s| s.to_string()).collect())
 }
 

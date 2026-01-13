@@ -91,8 +91,7 @@ impl App {
         match action {
             Action::Quit => self.state.running = false,
             Action::SaveAndQuit => {
-                // Ensure current modification is saved, though we modify memory directly in toggle
-                // Just need to flush to disk.
+                self.toggle_bookmark();
                 fs::save_content(&self.options.file_path, &self.novel.lines)?;
                 self.state.running = false;
             }

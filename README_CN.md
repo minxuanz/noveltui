@@ -36,7 +36,7 @@ cargo build --release
 # 例如：
 ./dzstui --url https://ixdzs8.com/read/508569/p1.html
 ```
-> 提示：目前 dzstui 仅支持 `https://ixdzs8.com/` 网站
+> 提示：目前 dzstui 仅支持 `https://ixdzs8.com/` 网站, 且需安装chrome浏览器
 
 ## 支持情况
 ### 操作系统

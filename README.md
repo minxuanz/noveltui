@@ -34,7 +34,7 @@ cargo build --release
 #e.g.
 ./dzstui --url https://ixdzs8.com/read/508569/p1.html
 ```
-> Tips: dzstui only supoort `https://ixdzs8.com/` now
+> Tips: dzstui only supoort `https://ixdzs8.com/` now, and need install chrome
 
 ## Supported 
 ### os

@@ -65,7 +65,8 @@ You can pass `--regex <YOUR CUSTOM REGEX>` to parse title.
 | `m`          | Toggle bookmark                 |
 | `M`          | Delete all bookmarks            |
 | `Space`      | Toggle auto-read mode           |
-| `b`          | Open bookmark menu              |
+| `b`          | Toggle bookmark menu            |
+| `t`          | Toggle toc                      |
 | `ctrl` + `z` | Suspend (unix)                  |
 
 <div align="center">

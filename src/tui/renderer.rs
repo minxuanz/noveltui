@@ -235,8 +235,6 @@ fn render_bookmarks(frame: &mut Frame, area: Rect, state: &mut AppState, _novel:
 }
 
 fn render_footer(frame: &mut Frame, area: Rect, state: &AppState, novel: &Novel) {
-    frame.render_widget(Block::default().style(Style::default()), area);
-
     let layout = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([

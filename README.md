@@ -1,13 +1,15 @@
+[English](./README.md) | [中文](./README_CN.md)
+
 # Noveltui
 
-A tui novel reader, Powered by https://github.com/ratatui/ratatui
-## Features
+A tui novel reader, Powered by [ratatui](https://github.com/ratatui/ratatui)
 
-- **Text File Support**: Reads UTF-8, GBK, GB2312, and other encodings
-- **Chapter Parsing**: Automatically detects and navigates chapters
+## Features
+- **Lightweight & Efficient**: Small binary size, low memory usage 
+- **Chapter Parsing**: Automatically detects and navigates chapters by regex and generate toc
 - **Bookmarks**: Add, remove, and manage bookmarks for easy navigation
 - **Auto-Read Mode**: Hands-free reading with automatic scrolling
-- **Read from website**: get website novel (WIP)
+- **Read from website**: dzstui can read from website (WIP)
 
 ## Installation
 
@@ -18,32 +20,39 @@ cd noveltui
 cargo build --release
 ```
 
-The binary will be available at `target/release/noveltui` for local read,
-`target/release/dzstui` for online read.
+`target/release/noveltui` read from local txt<br>
+`target/release/dzstui` read from website
 
 ## Usage
 
 ```bash
 ./noveltui path/to/your/novel.txt
-# need install chrome 
-./dzstui --url website
-# example
-./dzstui --url https://ixdzs8.com/read/508569/p1.html
 ```
 
+```bash
+./dzstui --url website
+#e.g.
+./dzstui --url https://ixdzs8.com/read/508569/p1.html
+```
+> Tips: dzstui only supoort `https://ixdzs8.com/` now
+
 ## Supported 
-### noveltui (local read)
-- Plain text files (.txt)
-- Various encodings (UTF-8, GBK, GB2312, etc.)
+### os
+- windows
+- linux
+- macos   (not test)
 
-#### Chapter Detection
-The app automatically parses chapter titles using regex patterns:
-- Chinese: `第[数字]章` (e.g., 第1章, 第一章)
-- English: `Chapter [number]` (e.g., Chapter 1, CHAPTER SIX)
+### format & encoding
+- txt (UTF-8, GBK, GB2312, etc.)
 
+
+### Chapter Detection(noveltui)
 You can pass `--regex <YOUR CUSTOM REGEX>` to parse title.
+```bash
+./noveltui --regex="^(\d+)([\u4e00-\u9fff0-9]+)$" path/to/your/novel.txt
+``` 
 
-#### Keybindings
+### Keybindings(noveltui)
 
 | Key          | Action                          |
 |--------------|---------------------------------|
@@ -51,22 +60,50 @@ You can pass `--regex <YOUR CUSTOM REGEX>` to parse title.
 | `Q`          | Quit                            |
 | `j` / `↓`    | Scroll down                     |
 | `k` / `↑`    | Scroll up                       |
+| `n`          | Next Charpter                   |
+| `p`          | Prev Charpter                   |
 | `m`          | Toggle bookmark                 |
 | `M`          | Delete all bookmarks            |
 | `Space`      | Toggle auto-read mode           |
 | `b`          | Open bookmark menu              |
+| `ctrl` + `z` | Suspend (unix)                  |
+
+<div align="center">
 
 ![content](./assets/content.png)
+*Content*
+
+</div>
+
+<div align="center">
 
 ![toc](./assets/toc.png)
+*toc*
+
+</div>
+
+<div align="center">
 
 ![bookmark](./assets/bookmark.png) 
+*bookmark*
+
+</div>
+
+<div align="center">
+
+![toc](./assets/tmux.png)
+*in tmux*
+
+</div>
 
 ### dzstui (online read) (WIP)
-- Require: chrome
-- Now only support ixdzs8.com
 
-![dzstui](./assets/dzstui.png) 
+<div align="center">
+
+![dzstui](./assets/dzstui.png)
+*dzstui*
+
+</div>
 
 
 ## Contributing

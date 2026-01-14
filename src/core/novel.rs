@@ -87,7 +87,7 @@ impl Novel {
                 // Clean trailing spaces
                 let new_len = line.trim_end().len();
                 line.truncate(new_len);
-            } else if remove_bookmark {
+            } else {
                 // Add it
                 line.truncate(trimmed_len);
                 line.push(' ');

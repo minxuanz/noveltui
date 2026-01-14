@@ -89,6 +89,10 @@ impl Novel {
                 line.truncate(new_len);
             } else {
                 // Add it
+                if line.trim_end().ends_with(BOOKMARK_SYMBOL) {
+                    // Already has bookmark
+                    return false;
+                }
                 line.truncate(trimmed_len);
                 line.push(' ');
                 line.push_str(BOOKMARK_SYMBOL);

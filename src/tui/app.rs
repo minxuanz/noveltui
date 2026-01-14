@@ -91,8 +91,10 @@ impl App {
         match action {
             Action::Quit => self.state.running = false,
             Action::SaveAndQuit => {
+                //if line end with bookmark symbol don't remove the symbol
+                self.state.should_remove_bookmark = false;
                 self.toggle_bookmark();
-                fs::save_content(&self.options.file_path, &self.novel.lines)?;
+                //fs::save_content(&self.options.file_path, &self.novel.lines)?;
                 self.state.running = false;
             }
             Action::Suspend => self.suspend()?,
@@ -288,7 +290,10 @@ impl App {
 
         if let Some(meta) = self.novel.chapters.get(chapter_idx) {
             let global_idx = meta.range.start + line_in_view;
-            if self.novel.toggle_bookmark(global_idx) {
+            if self
+                .novel
+                .toggle_bookmark(global_idx, self.state.should_remove_bookmark)
+            {
                 // Update cache immediately
                 self.state.refresh_bookmarks(&self.novel);
                 // Save best effort

@@ -1,12 +1,13 @@
 # Noveltui
 
-A terminal-based novel reader, Powered by https://github.com/ratatui/ratatui
+A tui novel reader, Powered by https://github.com/ratatui/ratatui
 ## Features
 
 - **Text File Support**: Reads UTF-8, GBK, GB2312, and other encodings
-- **Chapter Parsing**: Automatically detects and navigates chapters (e.g., "Chapter 1", "第1章", "CHAPTER SIX")
+- **Chapter Parsing**: Automatically detects and navigates chapters
 - **Bookmarks**: Add, remove, and manage bookmarks for easy navigation
 - **Auto-Read Mode**: Hands-free reading with automatic scrolling
+- **Read from website**: get website novel (WIP)
 
 ## Installation
 
@@ -26,50 +27,47 @@ The binary will be available at `target/release/noveltui` for local read,
 ./noveltui path/to/your/novel.txt
 # need install chrome 
 ./dzstui --url website
-# e.g.
+# example
 ./dzstui --url https://ixdzs8.com/read/508569/p1.html
 ```
 
-### Supported 
-#### noveltui (local read)
+## Supported 
+### noveltui (local read)
 - Plain text files (.txt)
 - Various encodings (UTF-8, GBK, GB2312, etc.)
 
-#### dzstui (online read) (WIP)
-- Require: chrome
-- Now only support ixdzs8.com
-
-### Chapter Detection
+#### Chapter Detection
 The app automatically parses chapter titles using regex patterns:
 - Chinese: `第[数字]章` (e.g., 第1章, 第一章)
 - English: `Chapter [number]` (e.g., Chapter 1, CHAPTER SIX)
 
 You can pass `--regex <YOUR CUSTOM REGEX>` to parse title.
 
-## Keybindings
+#### Keybindings
 
 | Key          | Action                          |
 |--------------|---------------------------------|
-| `q`          | Quit                            |
-| `Q`          | Add bookmark and quit           |
+| `q`          | Add bookmark then Quit          |
+| `Q`          | Quit                            |
 | `j` / `↓`    | Scroll down                     |
 | `k` / `↑`    | Scroll up                       |
 | `m`          | Toggle bookmark                 |
 | `M`          | Delete all bookmarks            |
 | `Space`      | Toggle auto-read mode           |
 | `b`          | Open bookmark menu              |
-| `→` / `l`    | Switch focus right              |
-| `←` / `h`    | Switch focus left               |
 
-## Screenshots
+![content](./assets/content.png)
 
-![Main Interface](./assets/image3.png)
+![toc](./assets/toc.png)
 
-![Bookmark Menu](./assets/image1.png)
+![bookmark](./assets/bookmark.png) 
 
-![dzstui](./assets/dzs.png) 
+### dzstui (online read) (WIP)
+- Require: chrome
+- Now only support ixdzs8.com
 
-![dzstui](./assets/dzs2.png) 
+![dzstui](./assets/dzstui.png) 
+
 
 ## Contributing
 

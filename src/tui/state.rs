@@ -45,6 +45,9 @@ pub struct AppState {
 
     // flag to indicate terminal needs re-initialization
     pub needs_reinit: bool,
+
+    // whether remove bookmark
+    pub should_remove_bookmark: bool,
 }
 
 impl AppState {
@@ -72,6 +75,7 @@ impl AppState {
             show_delete_confirmation: false,
             page_size,
             needs_reinit: false,
+            should_remove_bookmark: true,
         }
     }
 

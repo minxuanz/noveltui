@@ -53,12 +53,14 @@ fn get_main_layout(area: Rect, state: &AppState) -> Vec<Rect> {
         .split(area)
         .to_vec()
 }
+
 fn render_dim_layer(frame: &mut Frame, area: Rect) {
     let dim_block =
         Block::default().style(Style::default().bg(Color::Reset).fg(Color::Indexed(240)));
 
     frame.render_widget(dim_block, area);
 }
+
 fn render_middle_section(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &Novel) {
     render_content(frame, area, state, novel);
 
@@ -113,7 +115,13 @@ fn render_title(frame: &mut Frame, area: Rect, path: &Path) {
 }
 
 fn render_toc(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &Novel) {
-    frame.render_widget(Clear, area); // 清理背景
+    let clear_area = Rect {
+        x: area.x.saturating_sub(1),
+        y: area.y.saturating_sub(1),
+        width: area.width.saturating_add(2),
+        height: area.height.saturating_add(2),
+    };
+    frame.render_widget(Clear, clear_area); // 清理背景
 
     let items: Vec<ListItem> = novel
         .chapters
@@ -189,19 +197,20 @@ fn render_content(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &N
     frame.render_stateful_widget(list, area, &mut state.content_state);
 }
 
-fn render_bookmarks(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &Novel) {
-    frame.render_widget(Clear, area); // 清理背景
-
-    let title = if let Some(meta) = novel.chapters.get(state.active_chapter_index) {
-        format!(" [{}] ", meta.title)
-    } else {
-        format!(" Noooooo ")
+fn render_bookmarks(frame: &mut Frame, area: Rect, state: &mut AppState, _novel: &Novel) {
+    // area of clear must be bigger than the area of block
+    let clear_area = Rect {
+        x: area.x.saturating_sub(1),
+        y: area.y.saturating_sub(1),
+        width: area.width.saturating_add(2),
+        height: area.height.saturating_add(2),
     };
+    frame.render_widget(Clear, clear_area); // clear background
 
     let items: Vec<ListItem> = state
         .cached_bookmarks
         .iter()
-        .map(|b| ListItem::new(format!("{}{}", title, b.content)))
+        .map(|b| ListItem::new(format!("[{}] {}", b.chapter_title, b.content)))
         .collect();
 
     let theme_color = Color::Rgb(248, 195, 205); // #F8C3CD
@@ -330,8 +339,8 @@ fn render_help(frame: &mut Frame, area: Rect) {
 
 fn render_delete_confirmation(frame: &mut Frame, area: Rect) {
     let dialog_area = centered_rect(30, 20, area);
-    let dialog_area2 = centered_rect(35, 25, area);
-    frame.render_widget(Clear, dialog_area2);
+    let clear_area = centered_rect(32, 22, area);
+    frame.render_widget(Clear, clear_area);
 
     let block = Block::default()
         .borders(Borders::ALL)

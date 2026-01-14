@@ -21,7 +21,7 @@ impl App {
     pub fn new(options: Options) -> Result<Self> {
         let lines = fs::load_content(&options.file_path)?;
         let novel = Novel::new(lines);
-        let mut state = AppState::new(!options.simple_mode, options.speed);
+        let mut state = AppState::new(!options.simple_mode, options.speed, options.page_size);
 
         // Initial Bookmark Cache
         state.refresh_bookmarks(&novel);
@@ -38,6 +38,12 @@ impl App {
         self.handle_initial_jumps()?;
 
         while self.state.running {
+            if self.state.needs_reinit {
+                // If a suspend/resume cycle occurred, re-initialize the terminal
+                // This re-assigns the `terminal` variable that `run` holds.
+                terminal = ratatui::init();
+                self.state.needs_reinit = false; // Reset the flag
+            }
             // Render
             terminal.draw(|f| {
                 renderer::render_ui(f, &mut self.state, &self.novel, &self.options.file_path);
@@ -64,7 +70,7 @@ impl App {
         };
 
         if event::poll(timeout)? {
-            let action = inputs::resolve_event(event::read()?);
+            let action = inputs::resolve_event(event::read()?, &self.state);
             self.process_action(action)?;
         }
 
@@ -85,16 +91,30 @@ impl App {
         match action {
             Action::Quit => self.state.running = false,
             Action::SaveAndQuit => {
-                // Ensure current modification is saved, though we modify memory directly in toggle
-                // Just need to flush to disk.
-                fs::save_content(&self.options.file_path, &self.novel.lines)?;
+                //if line end with bookmark symbol don't remove the symbol
+                self.state.should_remove_bookmark = false;
+                self.toggle_bookmark();
+                //fs::save_content(&self.options.file_path, &self.novel.lines)?;
                 self.state.running = false;
             }
             Action::Suspend => self.suspend()?,
             Action::ToggleBookmarkMenu => {
                 self.state.show_bookmark_menu = !self.state.show_bookmark_menu;
                 self.state.focus = if self.state.show_bookmark_menu {
+                    self.state.show_toc_menu = false;
                     FocusArea::Bookmark
+                } else {
+                    FocusArea::Content
+                };
+            }
+            Action::ToggleTocMenu => {
+                self.state.show_toc_menu = !self.state.show_toc_menu;
+                self.state.focus = if self.state.show_toc_menu {
+                    // highlight to current chapter
+                    let curr = self.state.active_chapter_index;
+                    self.state.toc_state.select(Some(curr));
+                    self.state.show_bookmark_menu = false;
+                    FocusArea::Toc
                 } else {
                     FocusArea::Content
                 };
@@ -113,14 +133,38 @@ impl App {
                 self.state.show_delete_confirmation = false;
             }
 
-            Action::FocusLeft => self.switch_focus(true),
-            Action::FocusRight => self.switch_focus(false),
-
             Action::MoveUp => self.move_cursor_up(),
             Action::MoveDown => self.move_cursor_down(),
 
+            Action::NextChapter => {
+                let curr = self.state.active_chapter_index;
+                if curr + 1 < self.novel.chapters.len() {
+                    self.select_chapter(curr + 1);
+                }
+            }
+            Action::PrevChapter => {
+                let curr = self.state.active_chapter_index;
+                if curr > 0 {
+                    self.select_chapter(curr - 1);
+                }
+            }
+
             Action::Enter => self.on_enter(),
             Action::AutoScroll => self.state.auto_scroll = !self.state.auto_scroll,
+            Action::PageUp => {
+                let curr = self.state.content_state.selected().unwrap_or(0);
+                let page_size = self.state.page_size;
+                if curr >= page_size {
+                    self.state.content_state.select(Some(curr - page_size));
+                } else {
+                    self.state.content_state.select(Some(0));
+                }
+            }
+            Action::PageDown => {
+                let curr = self.state.content_state.selected().unwrap_or(0);
+                let page_size = self.state.page_size;
+                self.state.content_state.select(Some(curr + page_size));
+            }
             Action::None => {}
         }
         Ok(())
@@ -133,7 +177,12 @@ impl App {
             FocusArea::Toc => {
                 let curr = self.state.toc_state.selected().unwrap_or(0);
                 if curr > 0 {
-                    self.select_chapter(curr - 1);
+                    self.state.toc_state.select(Some(curr - 1));
+                } else {
+                    // move last
+                    self.state
+                        .toc_state
+                        .select(Some(self.novel.chapters.len() - 1));
                 }
             }
             FocusArea::Content => {
@@ -157,7 +206,12 @@ impl App {
                 let curr = self.state.bookmark_state.selected().unwrap_or(0);
                 if curr > 0 {
                     self.state.bookmark_state.select(Some(curr - 1));
-                    self.jump_to_bookmark();
+                    //self.jump_to_bookmark();
+                } else {
+                    // move last
+                    self.state
+                        .bookmark_state
+                        .select(Some(self.state.cached_bookmarks.len() - 1));
                 }
             }
         }
@@ -168,7 +222,10 @@ impl App {
             FocusArea::Toc => {
                 let curr = self.state.toc_state.selected().unwrap_or(0);
                 if curr + 1 < self.novel.chapters.len() {
-                    self.select_chapter(curr + 1);
+                    self.state.toc_state.select(Some(curr + 1));
+                } else {
+                    // move first
+                    self.state.toc_state.select(Some(0));
                 }
             }
             FocusArea::Content => {
@@ -190,7 +247,9 @@ impl App {
                 let curr = self.state.bookmark_state.selected().unwrap_or(0);
                 if curr + 1 < self.state.cached_bookmarks.len() {
                     self.state.bookmark_state.select(Some(curr + 1));
-                    self.jump_to_bookmark();
+                } else {
+                    // move first
+                    self.state.bookmark_state.select(Some(0));
                 }
             }
         }
@@ -202,20 +261,19 @@ impl App {
         self.state.content_state.select(Some(0));
     }
 
-    fn switch_focus(&mut self, left: bool) {
-        use FocusArea::*;
-        self.state.focus = match (self.state.focus, left) {
-            (Toc, false) => Content,
-            (Content, true) => Toc,
-            (Content, false) if self.state.show_bookmark_menu => Bookmark,
-            (Bookmark, true) => Content,
-            // Cycles or stays
-            (s, _) => s,
-        };
-    }
-
     fn on_enter(&mut self) {
         if self.state.focus == FocusArea::Toc {
+            self.state.active_chapter_index = self
+                .state
+                .toc_state
+                .selected()
+                .unwrap_or(self.state.active_chapter_index);
+            self.state.show_toc_menu = false;
+            self.state.content_state.select(Some(0));
+            self.state.focus = FocusArea::Content;
+        } else if self.state.focus == FocusArea::Bookmark {
+            self.state.show_bookmark_menu = false;
+            self.jump_to_bookmark();
             self.state.focus = FocusArea::Content;
         }
     }
@@ -223,7 +281,7 @@ impl App {
     // --- Bookmark Logic ---
 
     fn toggle_bookmark(&mut self) {
-        if self.state.focus == FocusArea::Toc {
+        if self.state.focus == FocusArea::Toc || self.state.focus == FocusArea::Bookmark {
             return;
         }
 
@@ -232,7 +290,10 @@ impl App {
 
         if let Some(meta) = self.novel.chapters.get(chapter_idx) {
             let global_idx = meta.range.start + line_in_view;
-            if self.novel.toggle_bookmark(global_idx) {
+            if self
+                .novel
+                .toggle_bookmark(global_idx, self.state.should_remove_bookmark)
+            {
                 // Update cache immediately
                 self.state.refresh_bookmarks(&self.novel);
                 // Save best effort
@@ -295,14 +356,19 @@ impl App {
     fn suspend(&mut self) -> Result<()> {
         #[cfg(unix)]
         {
+            use crossterm::cursor::Show;
+            use crossterm::terminal::LeaveAlternateScreen;
+            // Restore terminal before suspending
             ratatui::restore();
+            // show cursor
+            crossterm::execute!(std::io::stdout(), Show, LeaveAlternateScreen)?;
             // simple shell suspend
             use signal_hook::consts::signal::SIGTSTP;
             use signal_hook::low_level::raise;
             raise(SIGTSTP).unwrap();
 
             // Resume
-            ratatui::init();
+            self.state.needs_reinit = true;
         }
         Ok(())
     }

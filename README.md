@@ -1,61 +1,111 @@
+[English](./README.md) | [中文](./README_CN.md)
+
 # Noveltui
 
-A terminal-based novel reader .
-## Features
+A tui novel reader, Powered by [ratatui](https://github.com/ratatui/ratatui)
 
-- **Text File Support**: Reads UTF-8, GBK, GB2312, and other encodings
-- **Chapter Parsing**: Automatically detects and navigates chapters (e.g., "Chapter 1", "第1章", "CHAPTER SIX")
+## Features
+- **Lightweight & Efficient**: Small binary size, low memory usage 
+- **Chapter Parsing**: Automatically detects and navigates chapters by regex and generate toc
 - **Bookmarks**: Add, remove, and manage bookmarks for easy navigation
 - **Auto-Read Mode**: Hands-free reading with automatic scrolling
+- **Read from website**: dzstui can read from website (WIP)
 
 ## Installation
 
 ### Build from Source
 ```bash
-git clone https://github.com/yourusername/noveltui.git
+git clone https://github.com/minxuanz/noveltui.git
 cd noveltui
 cargo build --release
 ```
 
-The binary will be available at `target/release/noveltui`.
+`target/release/noveltui` read from local txt<br>
+`target/release/dzstui` read from website
 
 ## Usage
-
-Run the application with a text file path:
 
 ```bash
 ./noveltui path/to/your/novel.txt
 ```
 
-### Supported File Formats
-- Plain text files (.txt)
-- Various encodings (UTF-8, GBK, GB2312, etc.)
+```bash
+./dzstui --url website
+#e.g.
+./dzstui --url https://ixdzs8.com/read/508569/p1.html
+```
+> Tips: dzstui only supoort `https://ixdzs8.com/` now, and need install chrome
 
-### Chapter Detection
-The app automatically parses chapter titles using regex patterns:
-- Chinese: `第[数字]章` (e.g., 第1章, 第一章)
-- English: `Chapter [number]` (e.g., Chapter 1, CHAPTER SIX)
+## Supported 
+### os
+- windows
+- linux
+- macos   (not test)
 
-## Keybindings
+### format & encoding
+- txt (UTF-8, GBK, GB2312, etc.)
+
+
+### Chapter Detection(noveltui)
+You can pass `--regex <YOUR CUSTOM REGEX>` to parse title.
+```bash
+./noveltui --regex="^(\d+)([\u4e00-\u9fff0-9]+)$" path/to/your/novel.txt
+``` 
+
+### Keybindings(noveltui)
 
 | Key          | Action                          |
 |--------------|---------------------------------|
-| `q`          | Quit                            |
-| `Q`          | Add bookmark and quit           |
+| `q`          | Add bookmark then Quit          |
+| `Q`          | Quit                            |
 | `j` / `↓`    | Scroll down                     |
 | `k` / `↑`    | Scroll up                       |
+| `n`          | Next Charpter                   |
+| `p`          | Prev Charpter                   |
 | `m`          | Toggle bookmark                 |
 | `M`          | Delete all bookmarks            |
 | `Space`      | Toggle auto-read mode           |
-| `b`          | Open bookmark menu              |
-| `→` / `l`    | Switch focus right              |
-| `←` / `h`    | Switch focus left               |
+| `b`          | Toggle bookmark menu            |
+| `t`          | Toggle toc                      |
+| `ctrl` + `z` | Suspend (unix)                  |
 
-## Screenshots
+<div align="center">
 
-![Main Interface](./assets/image3.png)
+![content](./assets/content.png)
+*Content*
 
-![Bookmark Menu](./assets/image1.png)
+</div>
+
+<div align="center">
+
+![toc](./assets/toc.png)
+*toc*
+
+</div>
+
+<div align="center">
+
+![bookmark](./assets/bookmark.png) 
+*bookmark*
+
+</div>
+
+<div align="center">
+
+![toc](./assets/tmux.png)
+*in tmux*
+
+</div>
+
+### dzstui (online read) (WIP)
+
+<div align="center">
+
+![dzstui](./assets/dzstui.png)
+*dzstui*
+
+</div>
+
 
 ## Contributing
 

@@ -4,8 +4,8 @@ use ratatui::widgets::ListState;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Default)]
 pub enum FocusArea {
-    #[default]
     Toc,
+    #[default]
     Content,
     Bookmark,
 }
@@ -22,6 +22,7 @@ pub struct AppState {
 
     // Display Flags
     pub show_bookmark_menu: bool,
+    pub show_toc_menu: bool,
     pub show_title: bool,
     pub show_help: bool,
 
@@ -38,10 +39,19 @@ pub struct AppState {
 
     // Delete Confirmation Dialog
     pub show_delete_confirmation: bool,
+
+    // page size for content display
+    pub page_size: usize,
+
+    // flag to indicate terminal needs re-initialization
+    pub needs_reinit: bool,
+
+    // whether remove bookmark
+    pub should_remove_bookmark: bool,
 }
 
 impl AppState {
-    pub fn new(show_title: bool, speed: f64) -> Self {
+    pub fn new(show_title: bool, speed: f64, page_size: usize) -> Self {
         let mut toc_state = ListState::default();
         toc_state.select(Some(0));
         let mut content_state = ListState::default();
@@ -49,11 +59,12 @@ impl AppState {
 
         Self {
             running: false,
-            focus: FocusArea::Toc,
+            focus: FocusArea::Content,
             toc_state,
             content_state,
             bookmark_state: ListState::default(),
             show_bookmark_menu: false,
+            show_toc_menu: false,
             show_title,
             show_help: false,
             auto_scroll: false,
@@ -62,6 +73,9 @@ impl AppState {
             cached_bookmarks: Vec::new(),
             active_chapter_index: 0,
             show_delete_confirmation: false,
+            page_size,
+            needs_reinit: false,
+            should_remove_bookmark: true,
         }
     }
 

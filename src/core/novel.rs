@@ -13,6 +13,8 @@ pub struct BookmarkEntry {
     pub line_in_chapter: usize,
     /// The text content
     pub content: String,
+    /// title of chapter
+    pub chapter_title: String,
 }
 
 /// The Domain Model holding all data.
@@ -46,6 +48,7 @@ impl Novel {
         for (c_idx, chapter) in self.chapters.iter().enumerate() {
             // Iterate only within chapter ranges
             let slice = &self.lines[chapter.range.clone()];
+            let title = chapter.title.clone();
             for (local_idx, line) in slice.iter().enumerate() {
                 let trimmed = line.trim_end();
                 if trimmed.ends_with(BOOKMARK_SYMBOL) {
@@ -58,6 +61,7 @@ impl Novel {
                             chapter_index: c_idx,
                             line_in_chapter: local_idx,
                             content: clean_content,
+                            chapter_title: title.clone(),
                         });
                     }
                 }
@@ -68,7 +72,7 @@ impl Novel {
 
     /// Toggles the bookmark symbol on a specific line.
     /// Returns true if changed.
-    pub fn toggle_bookmark(&mut self, global_index: usize) -> bool {
+    pub fn toggle_bookmark(&mut self, global_index: usize, remove_bookmark: bool) -> bool {
         if let Some(line) = self.lines.get_mut(global_index) {
             let trimmed_len = line.trim_end().len();
             // if line is empty return false
@@ -76,7 +80,7 @@ impl Novel {
                 return false;
             }
 
-            if line.trim_end().ends_with(BOOKMARK_SYMBOL) {
+            if line.trim_end().ends_with(BOOKMARK_SYMBOL) && remove_bookmark {
                 // Remove it
                 let without_symbol = trimmed_len.saturating_sub(BOOKMARK_SYMBOL.len());
                 line.truncate(without_symbol);
@@ -85,6 +89,10 @@ impl Novel {
                 line.truncate(new_len);
             } else {
                 // Add it
+                if line.trim_end().ends_with(BOOKMARK_SYMBOL) {
+                    // Already has bookmark
+                    return false;
+                }
                 line.truncate(trimmed_len);
                 line.push(' ');
                 line.push_str(BOOKMARK_SYMBOL);

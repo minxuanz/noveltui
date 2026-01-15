@@ -11,11 +11,19 @@
 - **章节解析**：通过正则表达式自动检测章节并生成目录
 - **书签管理**：添加、删除和管理书签，便于快速定位
 - **自动阅读模式**：无需手动翻页，自动滚动阅读
-- **在线阅读**：dzstui 支持从网站获取并阅读小说（开发中）
+- **在线阅读**：`dzstui` 支持从网站获取并阅读小说（开发中）
 
 ## 安装
 
-### 从源代码构建
+```bash
+cargo install noveltui
+# only install noveltui
+cargo install noveltui --bin noveltui
+# only install dzstui
+cargo insatll noveltui --bin dzstui
+```
+
+## 从源代码构建
 ```bash
 git clone https://github.com/minxuanz/noveltui.git
 cd noveltui

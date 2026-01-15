@@ -9,11 +9,19 @@ A tui novel reader, Powered by [ratatui](https://github.com/ratatui/ratatui)
 - **Chapter Parsing**: Automatically detects and navigates chapters by regex and generate toc
 - **Bookmarks**: Add, remove, and manage bookmarks for easy navigation
 - **Auto-Read Mode**: Hands-free reading with automatic scrolling
-- **Read from website**: dzstui can read from website (WIP)
+- **Read from website**: `dzstui` can read from website (WIP)
 
 ## Installation
 
-### Build from Source
+```bash
+cargo install noveltui
+# only install noveltui
+cargo install noveltui --bin noveltui
+# only install dzstui
+cargo insatll noveltui --bin dzstui
+```
+
+## Build from Source
 ```bash
 git clone https://github.com/minxuanz/noveltui.git
 cd noveltui

@@ -28,7 +28,7 @@ pub fn render_ui(frame: &mut Frame, state: &mut AppState, novel: &Novel, file_pa
         render_help(frame, *chunks.last().unwrap());
     }
 
-    if state.show_delete_confirmation && state.focus == FocusArea::Bookmark {
+    if state.show_delete_confirmation {
         render_dim_layer(frame, frame.area());
         render_delete_confirmation(frame, frame.area());
     }
@@ -365,11 +365,7 @@ fn render_delete_confirmation(frame: &mut Frame, area: Rect) {
     frame.render_widget(
         Paragraph::new(" Yes (Y) ")
             .alignment(Alignment::Center)
-            .style(
-                Style::default()
-                    .fg(Color::DarkGray)
-                    .add_modifier(Modifier::DIM),
-            ),
+            .style(Style::default().fg(Color::DarkGray)),
         buttons[0],
     );
     frame.render_widget(

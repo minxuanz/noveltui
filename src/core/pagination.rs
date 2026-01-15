@@ -41,7 +41,7 @@ impl ChapterMetadata {
         let mut chapters = Vec::new();
 
         for (i, line) in lines.iter().enumerate() {
-            let is_header = if line.len() > 70 {
+            let is_header = if line.len() > 100 {
                 false
             } else {
                 re_cn.is_match(line) || re_en.is_match(line)

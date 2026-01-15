@@ -2,6 +2,12 @@
 name = "noveltui"
 version = "0.1.0"
 edition = "2024"
+authors = ["minxuanz <manypotatoes1@gmail.com>"]
+description = "A terminal-based novel reader (TUI)"
+license = "MIT"
+repository = "https://github.com/minxuanz/noveltui"
+keywords = ["tui", "novel", "reader", "ratatui"]
+categories = ["command-line-utilities"]
 
 [[bin]]
 name = "dzstui"

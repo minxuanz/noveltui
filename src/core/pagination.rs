@@ -64,7 +64,7 @@ impl ChapterMetadata {
                 // 创建新章节：起始索引为 i，结束索引暂时也设为 i（会在下个标题或循环结束时更新）
                 chapters.push(ChapterMetadata {
                     title: line.trim().to_string(),
-                    range: i..i,
+                    range: i + 1..i + 1,
                 });
             }
         }

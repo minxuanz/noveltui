@@ -286,10 +286,18 @@ fn render_footer(frame: &mut Frame, area: Rect, state: &AppState, novel: &Novel)
         let total = novel.lines.len();
         let progress = (global_line as f64 / total as f64 * 100.0) as usize;
 
+        let chapter_total = meta.range.end - meta.range.start;
         frame.render_widget(
-            Paragraph::new(format!(" {}%  {}/{} ", progress, global_line, total))
-                .alignment(Alignment::Right)
-                .style(Style::default().fg(Color::White)),
+            Paragraph::new(format!(
+                "{}/{} | {}% {}/{} ",
+                current_line + 1,
+                chapter_total,
+                progress,
+                global_line,
+                total
+            ))
+            .alignment(Alignment::Right)
+            .style(Style::default().fg(Color::White)),
             layout[3],
         );
 

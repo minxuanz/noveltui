@@ -84,20 +84,17 @@ pub fn render_ui(
         .split(chunks[1]);
 
     let inner_area = side_padding[1];
-    let foot_chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Length(11),
-            Constraint::Min(1),
-            Constraint::Length(55),
-        ])
-        .split(inner_area);
 
     if state.show_input {
+        let foot_chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Min(10), Constraint::Length(25)])
+            .split(inner_area);
+
         frame.render_widget(
-            Paragraph::new(format!("Jump To Chapter: {}_", state.input_buffer))
+            Paragraph::new(format!("Jump: {}_", state.input_buffer))
                 .style(Style::default().fg(Color::White).bold()),
-            foot_chunks[1],
+            foot_chunks[0],
         );
 
         // Footer hints
@@ -105,9 +102,18 @@ pub fn render_ui(
             Paragraph::new(" [Enter] Go  [Esc] Cancel")
                 .alignment(Alignment::Right)
                 .style(Style::default().fg(Color::Gray)),
-            foot_chunks[2],
+            foot_chunks[1],
         );
     } else {
+        let foot_chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Length(11),
+                Constraint::Min(1),
+                Constraint::Max(55),
+            ])
+            .split(inner_area);
+
         let (status_text, status_color) = match state.is_loading {
             true => ("  LOADING  ", Color::Yellow),
             false if state.loading_success => ("  LOADED  ", Color::Green),
@@ -116,7 +122,6 @@ pub fn render_ui(
 
         let current_line = state.content_state.selected().map(|i| i + 1).unwrap_or(0);
         let total_lines = content.len();
-        // let progress_text = format!(" {}/{} ", current_line, total_lines);
 
         frame.render_widget(
             Paragraph::new(status_text)
@@ -131,13 +136,20 @@ pub fn render_ui(
             foot_chunks[1],
         );
 
-        frame.render_widget(
-            Paragraph::new(format!(
+        // Only show full help text if there's enough width
+        let help_text = if inner_area.width > 60 {
+            format!(
                 "{}/{}  [/] Jump [n] Next [p] Prev [q] Quit [r] Refresh",
                 current_line, total_lines
-            ))
-            .alignment(Alignment::Right)
-            .style(Style::default().fg(Color::Gray)),
+            )
+        } else {
+            format!("{}/{}", current_line, total_lines)
+        };
+
+        frame.render_widget(
+            Paragraph::new(help_text)
+                .alignment(Alignment::Right)
+                .style(Style::default().fg(Color::Gray)),
             foot_chunks[2],
         );
     }

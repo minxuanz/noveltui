@@ -40,5 +40,7 @@ pub fn fetch_novel(url: &str) -> Result<NovelPage, Box<dyn std::error::Error>> {
         return Err("No content found in article container".into());
     }
 
+    tab.close(true)?;
+
     Ok(NovelPage { title, content })
 }

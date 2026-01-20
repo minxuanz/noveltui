@@ -235,21 +235,61 @@ fn render_bookmarks(frame: &mut Frame, area: Rect, state: &mut AppState, _novel:
 }
 
 fn render_footer(frame: &mut Frame, area: Rect, state: &AppState, novel: &Novel) {
+    let width = area.width;
+    let is_narrow = width < 70; // 窄屏阈值
+    let is_tiny = width < 45; // 极小屏阈值
+
+    let mut constraints = Vec::new();
+
+    // [0] Focus Area
+    let focus_width = if is_tiny { 8 } else { 12 };
+    constraints.push(Constraint::Length(focus_width));
+
+    // [1] Chapter Title
+    constraints.push(Constraint::Min(1));
+
+    // [2] Auto Scroll
+    if !is_narrow && state.auto_scroll {
+        constraints.push(Constraint::Length(15));
+    }
+
+    // [3] Progress
+    let progress_width = if is_tiny {
+        0
+    } else if is_narrow {
+        12
+    } else {
+        25
+    };
+    if progress_width > 0 {
+        constraints.push(Constraint::Length(progress_width));
+    }
+
+    // [4] Help
+    let help_width = if is_tiny { 6 } else { 10 };
+    constraints.push(Constraint::Length(help_width));
+
     let layout = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Length(12), // Focus Mode
-            Constraint::Min(1),     // Chapter Name
-            Constraint::Length(15), // Auto Scroll
-            Constraint::Length(25), // Progress
-            Constraint::Length(10), // Help
-        ])
+        .constraints(constraints)
         .split(area);
 
+    let mut chunk_idx = 0;
+
+    // 1. Focus Area (Index 0)
     let (label, color) = match state.focus {
-        FocusArea::Toc => ("    TOC", Color::Rgb(81, 168, 221)),
-        FocusArea::Content => ("  CONTENT", Color::Rgb(0, 170, 144)),
-        FocusArea::Bookmark => ("    MARK", Color::Rgb(203, 27, 69)),
+        FocusArea::Toc => (
+            if is_tiny { " TOC" } else { "    TOC" },
+            Color::Rgb(81, 168, 221),
+        ),
+        FocusArea::Content => (
+            if is_tiny { " CTX" } else { "  CONTENT" },
+            Color::Rgb(0, 170, 144),
+        ),
+        FocusArea::Bookmark => (
+            if is_tiny { " MRK" } else { "    MARK" },
+            Color::Rgb(203, 27, 69),
+        ),
     };
 
     frame.render_widget(
@@ -259,53 +299,71 @@ fn render_footer(frame: &mut Frame, area: Rect, state: &AppState, novel: &Novel)
                 .bg(color)
                 .add_modifier(Modifier::BOLD),
         ),
-        layout[0],
+        layout[chunk_idx],
     );
+    chunk_idx += 1;
 
+    // 2. Chapter Title (Index 1)
     let toc_idx = state
         .toc_state
         .selected()
         .unwrap_or(state.active_chapter_index);
+
     if let Some(meta) = novel.chapters.get(toc_idx) {
         frame.render_widget(
             Paragraph::new(format!(" {}", meta.title)).style(Style::default().fg(Color::White)),
-            layout[1],
+            layout[chunk_idx],
         );
+        chunk_idx += 1;
 
-        if state.auto_scroll {
+        // 3. Auto Scroll
+        if !is_narrow && state.auto_scroll {
             frame.render_widget(
                 Paragraph::new(format!(" {}ms", state.auto_scroll_speed_ms))
                     .alignment(Alignment::Center)
                     .style(Style::default().fg(Color::Yellow)),
-                layout[2],
+                layout[chunk_idx],
             );
+            chunk_idx += 1;
         }
 
-        let current_line = state.content_state.selected().unwrap_or(0);
-        let global_line = meta.range.start + current_line + 1;
-        let total = novel.lines.len();
-        let progress = (global_line as f64 / total as f64 * 100.0) as usize;
+        // 4. Progress
+        if progress_width > 0 {
+            let current_line = state.content_state.selected().unwrap_or(0);
+            let global_line = meta.range.start + current_line + 1;
+            let total = novel.lines.len();
+            let progress = (global_line as f64 / total as f64 * 100.0) as usize;
+            let chapter_total = meta.range.end - meta.range.start;
 
-        let chapter_total = meta.range.end - meta.range.start;
-        frame.render_widget(
-            Paragraph::new(format!(
-                "{}/{} | {}% {}/{} ",
-                current_line + 1,
-                chapter_total,
-                progress,
-                global_line,
-                total
-            ))
-            .alignment(Alignment::Right)
-            .style(Style::default().fg(Color::White)),
-            layout[3],
-        );
+            let progress_text = if is_narrow {
+                format!("{}% {}/{}", progress, current_line + 1, chapter_total)
+            } else {
+                format!(
+                    "{}/{} | {}% {}/{}",
+                    current_line + 1,
+                    chapter_total,
+                    progress,
+                    global_line,
+                    total
+                )
+            };
 
+            frame.render_widget(
+                Paragraph::new(progress_text)
+                    .alignment(Alignment::Right)
+                    .style(Style::default().fg(Color::White)),
+                layout[chunk_idx],
+            );
+            chunk_idx += 1;
+        }
+
+        // 5. Help (Index Last)
+        let help_text = if is_tiny { "?" } else { " ? Help " };
         frame.render_widget(
-            Paragraph::new(" ? Help ")
+            Paragraph::new(help_text)
                 .alignment(Alignment::Center)
                 .style(Style::default().fg(Color::Black).bg(Color::Gray)),
-            layout[4],
+            layout[chunk_idx],
         );
     }
 }

@@ -336,10 +336,10 @@ fn render_footer(frame: &mut Frame, area: Rect, state: &AppState, novel: &Novel)
             let chapter_total = meta.range.end - meta.range.start;
 
             let progress_text = if is_narrow {
-                format!("{}% {}/{}", progress, current_line + 1, chapter_total)
+                format!("{}% {}/{} ", progress, current_line + 1, chapter_total)
             } else {
                 format!(
-                    "{}/{} | {}% {}/{}",
+                    "{}/{} | {}% {}/{} ",
                     current_line + 1,
                     chapter_total,
                     progress,

@@ -74,22 +74,22 @@ pub fn render_ui(
     frame.render_stateful_widget(list, chunks[0], &mut state.content_state);
 
     // 2. Footer Rendering
-    let side_padding = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Length(1),
-            Constraint::Min(1),
-            Constraint::Length(1),
-        ])
-        .split(chunks[1]);
+    // let side_padding = Layout::default()
+    //     .direction(Direction::Horizontal)
+    //     .constraints([
+    //         Constraint::Length(1),
+    //         Constraint::Min(1),
+    //         Constraint::Length(1),
+    //     ])
+    //     .split(chunks[1]);
 
-    let inner_area = side_padding[1];
+    // let inner_area = side_padding[1];
 
     if state.show_input {
         let foot_chunks = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Min(10), Constraint::Length(25)])
-            .split(inner_area);
+            .split(chunks[1]);
 
         frame.render_widget(
             Paragraph::new(format!("Jump: {}_", state.input_buffer))
@@ -112,7 +112,7 @@ pub fn render_ui(
                 Constraint::Min(1),
                 Constraint::Max(55),
             ])
-            .split(inner_area);
+            .split(chunks[1]);
 
         let (status_text, status_color) = match state.is_loading {
             true => ("  LOADING  ", Color::Yellow),
@@ -125,7 +125,7 @@ pub fn render_ui(
 
         frame.render_widget(
             Paragraph::new(status_text)
-                .style(Style::default().bg(status_color).fg(Color::Black).bold()),
+                .style(Style::default().bg(status_color).fg(Color::White).bold()),
             foot_chunks[0],
         );
 
@@ -137,7 +137,7 @@ pub fn render_ui(
         );
 
         // Only show full help text if there's enough width
-        let help_text = if inner_area.width > 60 {
+        let help_text = if chunks[1].width > 60 {
             format!(
                 "{}/{}  [/] Jump [n] Next [p] Prev [q] Quit [r] Refresh",
                 current_line, total_lines

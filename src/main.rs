@@ -1,12 +1,11 @@
 use clap::Parser;
-use color_eyre::Result;
+use anyhow::Result;
 use noveltui::cmd::args::Options;
 use noveltui::core::novel::Novel;
 use noveltui::infra::fs;
 use noveltui::tui::app::App;
 
 fn main() -> Result<()> {
-    color_eyre::install()?;
     let args = Options::parse();
 
     let lines = match fs::load_content(&args.file_path) {

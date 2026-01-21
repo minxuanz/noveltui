@@ -5,17 +5,18 @@ use noveltui::tui::netrender::{AppState, render_ui};
 use ratatui::prelude::*;
 use std::sync::{Arc, Mutex};
 use std::thread;
+use anyhow::Result;
 
 #[derive(Parser, Debug)]
 struct Args {
     #[arg(short, long)]
     url: String,
 
-    // Set the number of rows per page (default: 8)
+    /// Set the number of rows per page (default: 8)
     #[arg(short, long, default_value_t = 8)]
     page_size: usize,
-}
 
+}
 struct SharedData {
     content: Vec<String>,
     title: String,
@@ -24,7 +25,8 @@ struct SharedData {
 }
 
 // #[tokio::main]
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<()> {
+
     let args = Args::parse();
     if !args.url.starts_with("https://ixdzs") {
         eprintln!("Error: URL don't supported.");
@@ -53,7 +55,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let current_url = args.url.clone();
 
     load_chapter(Arc::clone(&data), current_url.clone());
-
     let result = run_loop(&mut terminal, &mut state, data, current_url);
 
     ratatui::restore();
@@ -65,7 +66,7 @@ fn run_loop(
     state: &mut AppState,
     data: Arc<Mutex<SharedData>>,
     mut current_url: String,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<()> {
     loop {
         let (display_content, display_title) = {
             let d = data.lock().unwrap();

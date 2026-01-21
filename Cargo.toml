@@ -20,15 +20,14 @@ codegen-units = 1
 strip = "symbols"
 
 [dependencies]
+anyhow = "1.0.100"
 chardetng = "0.1.17"
 clap = { version = "4.5.53", features = ["derive"] }
-color-eyre = "0.6.5"
 crossterm = "0.29.0"
 encoding_rs = "0.8.35"
 headless_chrome = "1.0.20"
 ratatui = "0.29.0"
 regex = "1.12.2"
-reqwest = {version = "0.12.28", features = ["cookies", "rustls-tls"]}
 scraper = "0.25.0"
 signal-hook = "0.3.18"
 textwrap = "0.16.2"

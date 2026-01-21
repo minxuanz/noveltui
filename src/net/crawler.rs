@@ -1,12 +1,12 @@
 use headless_chrome::{Browser, LaunchOptions};
 use scraper::{Html, Selector};
-
+use anyhow::Result;
 pub struct NovelPage {
     pub title: String,
     pub content: Vec<String>,
 }
 
-pub fn fetch_novel(url: &str) -> Result<NovelPage, Box<dyn std::error::Error>> {
+pub fn fetch_novel(url: &str) -> Result<NovelPage> {
     let ops = LaunchOptions::default_builder().headless(true).build()?;
 
     let browser = Browser::new(ops)?;
@@ -37,7 +37,7 @@ pub fn fetch_novel(url: &str) -> Result<NovelPage, Box<dyn std::error::Error>> {
         .collect::<Vec<String>>();
 
     if content.is_empty() {
-        return Err("No content found in article container".into());
+        return Err(anyhow::anyhow!("No content found at the provided URL."));
     }
 
     tab.close(true)?;

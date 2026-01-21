@@ -1,5 +1,5 @@
 // src/tui/app.rs
-use color_eyre::Result;
+use anyhow::Result;
 use crossterm::event;
 use ratatui::DefaultTerminal;
 use std::time::{Duration, Instant};

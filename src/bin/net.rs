@@ -3,7 +3,7 @@ use crossterm::event::{self, Event, KeyCode};
 use noveltui::net::crawler;
 use noveltui::tui::netrender::{AppState, render_ui};
 use ratatui::prelude::*;
-use std::sync::{Arc, Mutex};
+use std::sync::mpsc;
 use std::thread;
 use anyhow::Result;
 
@@ -17,14 +17,14 @@ struct Args {
     page_size: usize,
 
 }
-struct SharedData {
+
+struct AppStateUpdate {
     content: Vec<String>,
     title: String,
     is_loading: bool,
     success: bool,
 }
 
-// #[tokio::main]
 fn main() -> Result<()> {
 
     let args = Args::parse();
@@ -45,17 +45,13 @@ fn main() -> Result<()> {
     };
     state.content_state.select(Some(0));
 
-    let data = Arc::new(Mutex::new(SharedData {
-        content: vec!["Initializing...".to_string()],
-        title: "Waiting...".to_string(),
-        is_loading: true,
-        success: false,
-    }));
+    let (tx, rx) = mpsc::channel::<Result<AppStateUpdate, String>>();
 
     let current_url = args.url.clone();
 
-    load_chapter(Arc::clone(&data), current_url.clone());
-    let result = run_loop(&mut terminal, &mut state, data, current_url);
+    set_loading_state(&tx, &current_url);
+    load_chapter(tx.clone(), current_url.clone());
+    let result = run_loop(&mut terminal, &mut state, rx, tx, current_url);
 
     ratatui::restore();
     result
@@ -64,16 +60,36 @@ fn main() -> Result<()> {
 fn run_loop(
     terminal: &mut Terminal<impl Backend>,
     state: &mut AppState,
-    data: Arc<Mutex<SharedData>>,
+    rx: mpsc::Receiver<Result<AppStateUpdate, String>>,
+    tx: mpsc::Sender<Result<AppStateUpdate, String>>,
     mut current_url: String,
 ) -> Result<()> {
+    let mut display_content = vec!["Initializing...".to_string()];
+    let mut display_title = "Waiting...".to_string();
+    let mut is_loading = true;
+    let mut loading_success = false;
+
     loop {
-        let (display_content, display_title) = {
-            let d = data.lock().unwrap();
-            state.is_loading = d.is_loading;
-            state.loading_success = d.success;
-            (d.content.clone(), d.title.clone())
-        };
+        // 检查 channel 消消息并更新本地状态
+        while let Ok(result) = rx.try_recv() {
+            match result {
+                Ok(update) => {
+                    display_content = update.content;
+                    display_title = update.title;
+                    is_loading = update.is_loading;
+                    loading_success = update.success;
+                }
+                Err(e) => {
+                    display_content = vec![e];
+                    display_title = "Error".to_string();
+                    is_loading = false;
+                    loading_success = false;
+                }
+            }
+        }
+
+        state.is_loading = is_loading;
+        state.loading_success = loading_success;
 
         terminal.draw(|f| render_ui(f, state, &display_content, &display_title, &current_url))?;
 
@@ -93,10 +109,11 @@ fn run_loop(
                             }
                             // 确认跳转
                             KeyCode::Enter => {
-                                if let Ok(page_num) = state.input_buffer.parse::<i32>() {
+                                        if let Ok(page_num) = state.input_buffer.parse::<i32>() {
                                     if page_num > 0 {
                                         current_url = get_url_by_page(&current_url, page_num);
-                                        load_chapter(Arc::clone(&data), current_url.clone());
+                                        set_loading_state(&tx, &current_url);
+                                        load_chapter(tx.clone(), current_url.clone());
                                         state.content_state.select(Some(0));
                                     }
                                 }
@@ -139,16 +156,19 @@ fn run_loop(
                             }
                             KeyCode::Char('n') => {
                                 current_url = update_url(&current_url, 1);
-                                load_chapter(Arc::clone(&data), current_url.clone());
+                                set_loading_state(&tx, &current_url);
+                                load_chapter(tx.clone(), current_url.clone());
                                 state.content_state.select(Some(0));
                             }
                             KeyCode::Char('p') => {
                                 current_url = update_url(&current_url, -1);
-                                load_chapter(Arc::clone(&data), current_url.clone());
+                                set_loading_state(&tx, &current_url);
+                                load_chapter(tx.clone(), current_url.clone());
                                 state.content_state.select(Some(0));
                             }
                             KeyCode::Char('r') => {
-                                load_chapter(Arc::clone(&data), current_url.clone());
+                                set_loading_state(&tx, &current_url);
+                                load_chapter(tx.clone(), current_url.clone());
                                 state.content_state.select(Some(0));
                             }
                             KeyCode::Char('s') => {
@@ -178,32 +198,34 @@ fn run_loop(
     Ok(())
 }
 
-fn load_chapter(shared_data: Arc<Mutex<SharedData>>, url: String) {
-    {
-        let mut d = shared_data.lock().unwrap();
-        d.is_loading = true;
-        d.title = format!("Fetching: {}", url);
-        d.content = vec![
-            "Loading content, please wait...".to_string(),
-            format!("URL: {}", url),
-        ];
-    }
-
-    thread::spawn(move || match crawler::fetch_novel(&url) {
-        Ok(page) => {
-            let mut d = shared_data.lock().unwrap();
-            d.content = page.content;
-            d.title = page.title;
-            d.is_loading = false;
-            d.success = true;
-        }
-        Err(e) => {
-            let mut d = shared_data.lock().unwrap();
-            d.content = vec![format!("Error: {}", e)];
-            d.is_loading = false;
-            d.success = false;
-        }
+fn load_chapter(tx: mpsc::Sender<Result<AppStateUpdate, String>>, url: String) {
+    thread::spawn(move || {
+        let result = match crawler::fetch_novel(&url) {
+            Ok(page) => Ok(AppStateUpdate {
+                content: page.content,
+                title: page.title,
+                is_loading: false,
+                success: true,
+            }),
+            Err(e) => Err(format!("Error: {}", e)),
+        };
+        let _ = tx.send(result);
     });
+}
+
+fn set_loading_state(tx: &mpsc::Sender<Result<AppStateUpdate, String>>, url: &str) {
+    let loading_content = vec![
+        "Loading content, please wait...".to_string(),
+        format!("URL: {}", url),
+    ];
+    let loading_title = format!("Fetching: {}", url);
+    let update = AppStateUpdate {
+        content: loading_content,
+        title: loading_title,
+        is_loading: true,
+        success: false,
+    };
+    let _ = tx.send(Ok(update));
 }
 
 fn update_url(url: &str, delta: i32) -> String {

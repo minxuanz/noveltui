@@ -1,3 +1,4 @@
+use anyhow::Result;
 use clap::Parser;
 use crossterm::event::{self, Event, KeyCode};
 use noveltui::net::crawler;
@@ -5,17 +6,15 @@ use noveltui::tui::netrender::{AppState, render_ui};
 use ratatui::prelude::*;
 use std::sync::mpsc;
 use std::thread;
-use anyhow::Result;
 
 #[derive(Parser, Debug)]
 struct Args {
     #[arg(short, long)]
-    url: String,
+    url: Option<String>,
 
     /// Set the number of rows per page (default: 8)
     #[arg(short, long, default_value_t = 8)]
     page_size: usize,
-
 }
 
 struct AppStateUpdate {
@@ -26,11 +25,12 @@ struct AppStateUpdate {
 }
 
 fn main() -> Result<()> {
-
     let args = Args::parse();
-    if !args.url.starts_with("https://ixdzs") {
-        eprintln!("Error: URL don't supported.");
-        return Ok(());
+    if let Some(ref url) = args.url {
+        if !url.starts_with("https://ixdzs") {
+            eprintln!("Error: URL don't supported.");
+            return Ok(());
+        }
     }
     let mut terminal = ratatui::init();
 
@@ -47,10 +47,29 @@ fn main() -> Result<()> {
 
     let (tx, rx) = mpsc::channel::<Result<AppStateUpdate, String>>();
 
-    let current_url = args.url.clone();
+    let current_url = args.url.clone().unwrap_or_else(|| "".to_string());
 
-    set_loading_state(&tx, &current_url);
-    load_chapter(tx.clone(), current_url.clone());
+    if args.url.is_some() {
+        set_loading_state(&tx, &current_url);
+        load_chapter(tx.clone(), current_url.clone());
+    } else {
+        // Send initial prompt
+        let prompt_content = vec![
+            "Welcome".to_string(),
+            "Press / to enter a URL and start reading.".to_string(),
+            "按下 / 键 输入小说章节网址并开始阅读".to_string(),
+            "Only Supported sites: https://ixdzs8.com".to_string(),
+            "仅支持 https://ixdzs8.com".to_string(),
+            "Example: https://ixdzs8.com/read/12345/p1.html".to_string(),
+        ];
+        let update = AppStateUpdate {
+            content: prompt_content,
+            title: "NovelTUI".to_string(),
+            is_loading: false,
+            success: true,
+        };
+        let _ = tx.send(Ok(update));
+    }
     let result = run_loop(&mut terminal, &mut state, rx, tx, current_url);
 
     ratatui::restore();
@@ -68,6 +87,9 @@ fn run_loop(
     let mut display_title = "Waiting...".to_string();
     let mut is_loading = true;
     let mut loading_success = false;
+
+    let mut history: Vec<String> = Vec::new();
+    let mut history_index: i32 = -1;
 
     loop {
         // 检查 channel 消消息并更新本地状态
@@ -99,28 +121,6 @@ fn run_loop(
                     // === 输入模式逻辑 ===
                     if state.show_input {
                         match key.code {
-                            // 输入数字
-                            KeyCode::Char(c) if c.is_ascii_digit() => {
-                                state.input_buffer.push(c);
-                            }
-                            // 退格键删除
-                            KeyCode::Backspace => {
-                                state.input_buffer.pop();
-                            }
-                            // 确认跳转
-                            KeyCode::Enter => {
-                                        if let Ok(page_num) = state.input_buffer.parse::<i32>() {
-                                    if page_num > 0 {
-                                        current_url = get_url_by_page(&current_url, page_num);
-                                        set_loading_state(&tx, &current_url);
-                                        load_chapter(tx.clone(), current_url.clone());
-                                        state.content_state.select(Some(0));
-                                    }
-                                }
-                                // 重置并退出输入模式
-                                state.show_input = false;
-                                state.input_buffer.clear();
-                            }
                             // 取消
                             KeyCode::Esc => {
                                 state.show_input = false;
@@ -130,6 +130,61 @@ fn run_loop(
                                 state.show_input = false;
                                 state.input_buffer.clear();
                                 break;
+                            }
+                            // 上键：历史上一条
+                            KeyCode::Up => {
+                                if history_index < (history.len() as i32 - 1) {
+                                    history_index += 1;
+                                    state.input_buffer = history[history_index as usize].clone();
+                                }
+                            }
+                            // 下键：历史下一条
+                            KeyCode::Down => {
+                                if history_index > -1 {
+                                    history_index -= 1;
+                                    if history_index == -1 {
+                                        state.input_buffer.clear();
+                                    } else {
+                                        state.input_buffer = history[history_index as usize].clone();
+                                    }
+                                }
+                            }
+                            // 输入字符（包括字母、数字、符号）
+                            KeyCode::Char(c) => {
+                                if history_index != -1 {
+                                    history_index = -1;
+                                }
+                                state.input_buffer.push(c);
+                            }
+                            // 退格键删除
+                            KeyCode::Backspace => {
+                                if history_index != -1 {
+                                    history_index = -1;
+                                }
+                                state.input_buffer.pop();
+                            }
+                            // 确认跳转
+                            KeyCode::Enter => {
+                                let input_url = state.input_buffer.trim();
+                                if !input_url.is_empty()
+                                    && input_url.starts_with("https://ixdzs8.com/read/")
+                                {
+                                    current_url = input_url.to_string();
+                                    history.push(input_url.to_string());
+                                    set_loading_state(&tx, &current_url);
+                                    load_chapter(tx.clone(), current_url.clone());
+                                    state.content_state.select(Some(0));
+                                } else {
+                                    let error_msg = if input_url.is_empty() {
+                                        "URL cannot be empty."
+                                    } else {
+                                        "Invalid URL: Only https://ixdzs... supported."
+                                    };
+                                    let _ = tx.send(Err(error_msg.to_string()));
+                                }
+                                // 重置并退出输入模式
+                                state.show_input = false;
+                                state.input_buffer.clear();
                             }
                             _ => {}
                         }
@@ -141,6 +196,7 @@ fn run_loop(
                             KeyCode::Char('/') => {
                                 state.show_input = true;
                                 state.input_buffer.clear();
+                                history_index = -1;
                             }
                             KeyCode::Char('j') | KeyCode::Down => {
                                 let i = state.content_state.selected().unwrap_or(0);
@@ -245,24 +301,5 @@ fn update_url(url: &str, delta: i32) -> String {
     format!(
         "https://{}/{}/{}/p{}.html",
         parts[2], parts[3], parts[4], next_chapter
-    )
-}
-
-fn get_url_by_page(url: &str, page_num: i32) -> String {
-    let parts: Vec<&str> = url.split('/').collect();
-    // parts[0] = "https:"
-    // parts[1] = ""
-    // parts[2] = domain
-    // parts[3] = "read"
-    // parts[4] = book_id
-    // parts[5] = "p1.html"
-
-    if parts.len() < 5 {
-        return url.to_string();
-    }
-
-    format!(
-        "https://{}/{}/{}/p{}.html",
-        parts[2], parts[3], parts[4], page_num
     )
 }

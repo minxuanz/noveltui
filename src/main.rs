@@ -1,5 +1,5 @@
-use clap::Parser;
 use anyhow::Result;
+use clap::Parser;
 use noveltui::cmd::args::Options;
 use noveltui::core::novel::Novel;
 use noveltui::infra::fs;

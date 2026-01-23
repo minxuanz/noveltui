@@ -1,6 +1,6 @@
+use anyhow::Result;
 use headless_chrome::{Browser, LaunchOptions};
 use scraper::{Html, Selector};
-use anyhow::Result;
 pub struct NovelPage {
     pub title: String,
     pub content: Vec<String>,

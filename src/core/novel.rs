@@ -4,7 +4,7 @@ pub const BOOKMARK_SYMBOL: &str = "🔖";
 
 /// Represents a single bookmark entry.
 #[derive(Debug, Clone)]
-pub struct BookmarkEntry {
+pub struct BookmarkEntry<'a> {
     /// Global line index in the file
     pub global_index: usize,
     /// The index of the chapter this line belongs to
@@ -12,9 +12,8 @@ pub struct BookmarkEntry {
     /// The line index relative to the chapter start
     pub line_in_chapter: usize,
     /// The text content
-    pub content: String,
-    /// title of chapter
-    pub chapter_title: String,
+    pub content: &'a str,
+    // (removed) title of chapter is read from `Novel.chapters` via `chapter_index`
 }
 
 /// The Domain Model holding all data.
@@ -41,19 +40,18 @@ impl Novel {
     }
 
     /// Scans the entire file to rebuild the list of bookmarks.
-    pub fn collect_bookmarks(&self) -> Vec<BookmarkEntry> {
+    pub fn collect_bookmarks<'a>(&'a self) -> Vec<BookmarkEntry<'a>> {
         let mut bookmarks = Vec::new();
         let symbol_len = BOOKMARK_SYMBOL.len();
 
         for (c_idx, chapter) in self.chapters.iter().enumerate() {
             // Iterate only within chapter ranges
             let slice = &self.lines[chapter.range.clone()];
-            let title = chapter.title.clone();
             for (local_idx, line) in slice.iter().enumerate() {
                 let trimmed = line.trim_end();
                 if trimmed.ends_with(BOOKMARK_SYMBOL) {
                     let content_end = trimmed.len().saturating_sub(symbol_len);
-                    let clean_content = trimmed[..content_end].trim().to_string();
+                    let clean_content = trimmed[..content_end].trim();
 
                     if !clean_content.is_empty() {
                         bookmarks.push(BookmarkEntry {
@@ -61,7 +59,6 @@ impl Novel {
                             chapter_index: c_idx,
                             line_in_chapter: local_idx,
                             content: clean_content,
-                            chapter_title: title.clone(),
                         });
                     }
                 }

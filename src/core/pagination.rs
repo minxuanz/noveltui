@@ -11,7 +11,7 @@ static RE_EN: OnceLock<Regex> = OnceLock::new();
 /// Metadata defining a chapter's position in the global line vector.
 #[derive(Debug, Clone)]
 pub struct ChapterMetadata {
-    pub title: String,
+    pub title: Box<str>,
     /// The range of indices in the global `lines` vector [start, end)
     pub range: Range<usize>,
 }
@@ -51,7 +51,7 @@ impl ChapterMetadata {
                 // 如果这是发现的第一个标题，且前面有文字，将前面的内容归为 "Intro"
                 if chapters.is_empty() && i > 0 {
                     chapters.push(ChapterMetadata {
-                        title: "Intro".to_string(),
+                        title: Box::from("Intro".to_string()),
                         range: 0..i,
                     });
                 } else if !chapters.is_empty() {
@@ -63,7 +63,7 @@ impl ChapterMetadata {
 
                 // 创建新章节：起始索引为 i，结束索引暂时也设为 i（会在下个标题或循环结束时更新）
                 chapters.push(ChapterMetadata {
-                    title: line.trim().to_string(),
+                    title: Box::from(line.trim().to_string()),
                     range: i + 1..i + 1,
                 });
             }
@@ -75,7 +75,7 @@ impl ChapterMetadata {
         } else if !lines.is_empty() {
             // 如果全文没有匹配到任何标题，则将全文视作一个章节
             chapters.push(ChapterMetadata {
-                title: "Full Content".to_string(),
+                title: Box::from("Full Content".to_string()),
                 range: 0..lines.len(),
             });
         }

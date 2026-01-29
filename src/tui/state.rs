@@ -1,5 +1,5 @@
 // src/tui/state.rs
-use crate::core::novel::{BookmarkEntry, Novel};
+use crate::core::novel::Novel;
 use ratatui::widgets::ListState;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Default)]
@@ -31,8 +31,7 @@ pub struct AppState {
     pub auto_scroll_speed_ms: u64,
     pub last_scroll_time: std::time::Instant,
 
-    // Cached Data for UI
-    pub cached_bookmarks: Vec<BookmarkEntry>,
+
 
     // Current Navigation
     pub active_chapter_index: usize,
@@ -70,7 +69,6 @@ impl AppState {
             auto_scroll: false,
             auto_scroll_speed_ms: (speed * 1000.0) as u64,
             last_scroll_time: std::time::Instant::now(),
-            cached_bookmarks: Vec::new(),
             active_chapter_index: 0,
             show_delete_confirmation: false,
             page_size,
@@ -80,15 +78,14 @@ impl AppState {
     }
 
     pub fn refresh_bookmarks(&mut self, novel: &Novel) {
-        self.cached_bookmarks = novel.collect_bookmarks();
-        // Adjust selection if out of bounds
-        if !self.cached_bookmarks.is_empty() {
+        let bookmarks = novel.collect_bookmarks();
+        let len = bookmarks.len();
+        if len > 0 {
             if self.bookmark_state.selected().is_none() {
                 self.bookmark_state.select(Some(0));
             } else if let Some(sel) = self.bookmark_state.selected() {
-                if sel >= self.cached_bookmarks.len() {
-                    self.bookmark_state
-                        .select(Some(self.cached_bookmarks.len() - 1));
+                if sel >= len {
+                    self.bookmark_state.select(Some(len - 1));
                 }
             }
         } else {

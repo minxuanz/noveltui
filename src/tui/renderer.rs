@@ -126,7 +126,7 @@ fn render_toc(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &Novel
     let items: Vec<ListItem> = novel
         .chapters
         .iter()
-        .map(|c| ListItem::new(c.title.clone()))
+        .map(|c| ListItem::new(c.title.as_ref().to_string()))
         .collect();
 
     let theme_color = Color::Rgb(129, 199, 212); // #81C7D4
@@ -158,7 +158,7 @@ fn render_content(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &N
     let title = if let Some(meta) = novel.chapters.get(state.active_chapter_index)
         && state.show_title
     {
-        format!(" {} ", meta.title)
+        format!(" {} ", meta.title.as_ref())
     } else {
         "".to_string()
     };
@@ -197,7 +197,7 @@ fn render_content(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &N
     frame.render_stateful_widget(list, area, &mut state.content_state);
 }
 
-fn render_bookmarks(frame: &mut Frame, area: Rect, state: &mut AppState, _novel: &Novel) {
+fn render_bookmarks(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &Novel) {
     // area of clear must be bigger than the area of block
     let clear_area = Rect {
         x: area.x.saturating_sub(1),
@@ -207,10 +207,17 @@ fn render_bookmarks(frame: &mut Frame, area: Rect, state: &mut AppState, _novel:
     };
     frame.render_widget(Clear, clear_area); // clear background
 
-    let items: Vec<ListItem> = state
-        .cached_bookmarks
+    let bookmarks = novel.collect_bookmarks();
+    let items: Vec<ListItem> = bookmarks
         .iter()
-        .map(|b| ListItem::new(format!("[{}] {}", b.chapter_title, b.content)))
+        .map(|b| {
+            let title = novel
+                .chapters
+                .get(b.chapter_index)
+                .map(|c| c.title.as_ref())
+                .unwrap_or("");
+            ListItem::new(format!("[{}] {}", title, b.content))
+        })
         .collect();
 
     let theme_color = Color::Rgb(248, 195, 205); // #F8C3CD
@@ -311,7 +318,7 @@ fn render_footer(frame: &mut Frame, area: Rect, state: &AppState, novel: &Novel)
 
     if let Some(meta) = novel.chapters.get(toc_idx) {
         frame.render_widget(
-            Paragraph::new(format!(" {}", meta.title)).style(Style::default().fg(Color::White)),
+            Paragraph::new(format!(" {} ", meta.title.as_ref())).style(Style::default().fg(Color::White)),
             layout[chunk_idx],
         );
         chunk_idx += 1;

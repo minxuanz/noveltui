@@ -1,4 +1,6 @@
 use super::pagination::ChapterMetadata;
+use crate::cmd::args::Options;
+use clap::Parser;
 
 pub const BOOKMARK_SYMBOL: &str = "🔖";
 
@@ -27,7 +29,7 @@ pub struct Novel {
 
 impl Novel {
     pub fn new(lines: Vec<String>) -> Self {
-        let chapters = ChapterMetadata::parse_chapters(&lines);
+        let chapters = ChapterMetadata::parse_chapters(&lines, &Options::parse());
         Self { lines, chapters }
     }
 

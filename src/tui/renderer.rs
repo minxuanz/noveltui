@@ -126,7 +126,7 @@ fn render_toc(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &Novel
     let items: Vec<ListItem> = novel
         .chapters
         .iter()
-        .map(|c| ListItem::new(c.title.as_ref().to_string()))
+        .map(|c| ListItem::new(c.title.as_ref()))
         .collect();
 
     let theme_color = Color::Rgb(129, 199, 212); // #81C7D4

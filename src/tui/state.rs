@@ -47,6 +47,9 @@ pub struct AppState {
 
     // whether remove bookmark
     pub should_remove_bookmark: bool,
+
+    // whether increase line space 
+    pub inc_line_space: bool,
 }
 
 impl AppState {
@@ -74,6 +77,7 @@ impl AppState {
             page_size,
             needs_reinit: false,
             should_remove_bookmark: true,
+            inc_line_space: false,
         }
     }
 

@@ -163,19 +163,21 @@ fn render_content(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &N
         "".to_string()
     };
 
-    let items: Vec<ListItem> = chapter_lines
-        .iter()
-        .map(|line| {
-            let wrapped = textwrap::wrap(line, inner_width);
-            let mut joined = wrapped
-                .iter()
-                .map(|c| c.to_string())
-                .collect::<Vec<_>>()
-                .join("\n");
-            joined.push_str("\n\n");
-            ListItem::new(Text::from(joined))
-        })
-        .collect();
+ let items: Vec<ListItem> = chapter_lines
+    .iter()
+    .map(|line| {
+        let wrapped = textwrap::wrap(line, inner_width);    
+        let mut lines: Vec<Line> = wrapped
+            .into_iter()
+            .map(|c| Line::from(c))
+            .collect();
+
+        if state.inc_line_space {
+            lines.push(Line::from("")); 
+        }
+        ListItem::new(Text::from(lines))
+    })
+    .collect();
 
     let highlight = if state.focus == FocusArea::Content {
         Style::default().fg(Color::Rgb(168, 216, 185))
@@ -383,7 +385,7 @@ fn render_help(frame: &mut Frame, area: Rect) {
 
     let help_groups = [
         " k/↑  Up            j/↓  Down               PgUp   Pageup        PgDn   Pagedown   Enter  Select",
-        " m    Toggle Mark   M    Clear All Marks    q/esc  Mark&Quit     Q      Quit       ",
+        " m    Toggle Mark   M    Clear All Marks    q/esc  Mark&Quit     Q      Quit       l      Adjust Line Space",
         " b    Bookmarks     t    TOC                s      Title&Footer  Space  AutoScroll ",
     ];
 

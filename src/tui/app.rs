@@ -149,6 +149,9 @@ impl App {
                 }
             }
 
+            Action::ToggleLineSpace => {
+                self.state.inc_line_space = !self.state.inc_line_space;
+            }
             Action::Enter => self.on_enter(),
             Action::AutoScroll => self.state.auto_scroll = !self.state.auto_scroll,
             Action::PageUp => {

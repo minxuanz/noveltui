@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::Parser;
 use noveltui::cmd::args::Options;
 use noveltui::core::novel::Novel;
@@ -13,15 +13,13 @@ fn main() -> Result<()> {
         .map(|s| s.to_lowercase());
 
     if extension.as_deref() != Some("txt") {
-        eprintln!("Error: Unsupported file format. Please provide a .txt file.");
-        std::process::exit(1);
+        return Err(anyhow!("Unsupported file format. Please provide a .txt file."));
     }
 
     let lines = match fs::load_content(&args.file_path) {
         Ok(lines) => lines,
         Err(e) => {
-            eprintln!("{}: {}", args.file_path.display(), e);
-            std::process::exit(1);
+            return Err(anyhow!("{}: {}", args.file_path.display(), e));
         }
     };
 

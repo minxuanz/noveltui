@@ -42,15 +42,17 @@ impl ChapterMetadata {
                 
                 if i > last_idx {
                     let title = if chapters.is_empty() {
-                        last_idx = last_idx - 1;
                         "Intro".into()
                     } else {
-                        lines[last_idx].trim().into()
+                        let real_title = lines[last_idx].trim().into();
+                        last_idx = last_idx.saturating_add(1);
+                        real_title
+
                     };
                     
                     chapters.push(ChapterMetadata {
                         title,
-                        range: (last_idx + 1)..i,
+                        range: last_idx..i,
                     });
                 }
                 last_idx = i;
@@ -60,18 +62,42 @@ impl ChapterMetadata {
         // 处理最后一个章节或全文
         if !lines.is_empty() {
             let title = if chapters.is_empty() {
-                last_idx = last_idx - 1;
                 "Full Content".into()
             } else {
-                lines[last_idx].trim().into()
+                 let real_title = lines[last_idx].trim().into();
+                 last_idx = last_idx.saturating_add(1);
+                 real_title
             };
             
             chapters.push(ChapterMetadata {
                 title,
-                range: (last_idx + 1)..lines.len(),
+                range: last_idx..lines.len(),
             });
         }
 
         chapters
     }
+}
+
+#[test]
+fn test_chapter_parsing() {
+    use crate::cmd::args::Options;
+
+    let args = Options::default();
+    let lines = vec![
+        "Some intro text.".to_string(),
+        "Chapter 1: The Beginning".to_string(),
+        "This is the first chapter.".to_string(),
+        "Chapter 2: The Continuation".to_string(),
+        "This is the second chapter.".to_string(),
+    ];
+
+    let chapters = ChapterMetadata::parse_chapters(&lines, &args);
+    assert_eq!(chapters.len(), 3);
+    assert_eq!(chapters[0].title.as_ref(), "Intro");
+    assert_eq!(chapters[0].range, 0..1);
+    assert_eq!(chapters[1].title.as_ref(), "Chapter 1: The Beginning");
+    assert_eq!(chapters[1].range, 2..3);
+    assert_eq!(chapters[2].title.as_ref(), "Chapter 2: The Continuation");
+    assert_eq!(chapters[2].range, 4..5);
 }

@@ -5,6 +5,7 @@ use crossterm::event::{Event, KeyCode, KeyEventKind, KeyModifiers};
 pub enum Action {
     Quit,
     SaveAndQuit,
+    QiutPopMenu,
     Suspend,
     ToggleBookmarkMenu,
     ToggleTocMenu,
@@ -32,7 +33,8 @@ pub fn resolve_event(ev: Event, state: &AppState) -> Action {
             KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => Action::Quit,
             KeyCode::Char('z') if key.modifiers.contains(KeyModifiers::CONTROL) => Action::Suspend,
 
-            KeyCode::Char('q') | KeyCode::Esc => Action::SaveAndQuit,
+            KeyCode::Char('q') => Action::SaveAndQuit,
+            KeyCode::Esc       => Action::QiutPopMenu,
             KeyCode::Char('Q') => Action::Quit,
             KeyCode::Char('b') => Action::ToggleBookmarkMenu,
             KeyCode::Char('t') => Action::ToggleTocMenu,

@@ -90,11 +90,21 @@ impl App {
     fn process_action(&mut self, action: Action) -> Result<()> {
         match action {
             Action::Quit => self.state.running = false,
+            Action::QiutPopMenu => {
+                if self.state.show_delete_confirmation {
+                    self.state.show_delete_confirmation = false;
+                } else if self.state.show_bookmark_menu {
+                    self.state.show_bookmark_menu = false;
+                    self.state.focus = FocusArea::Content;
+                } else if self.state.show_toc_menu {
+                    self.state.show_toc_menu = false;
+                    self.state.focus = FocusArea::Content;
+                }
+            }
             Action::SaveAndQuit => {
                 //if line end with bookmark symbol don't remove the symbol
                 self.state.should_remove_bookmark = false;
                 self.toggle_bookmark();
-                //fs::save_content(&self.options.file_path, &self.novel.lines)?;
                 self.state.running = false;
             }
             Action::Suspend => self.suspend()?,
@@ -287,9 +297,9 @@ impl App {
     // --- Bookmark Logic ---
 
     fn toggle_bookmark(&mut self) {
-        if self.state.focus == FocusArea::Toc || self.state.focus == FocusArea::Bookmark {
-            return;
-        }
+        // if self.state.focus == FocusArea::Toc || self.state.focus == FocusArea::Bookmark {
+        //     return;
+        // }
 
         let chapter_idx = self.state.active_chapter_index;
         let line_in_view = self.state.content_state.selected().unwrap_or(0);

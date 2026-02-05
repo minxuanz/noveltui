@@ -385,7 +385,7 @@ fn render_help(frame: &mut Frame, area: Rect) {
 
     let help_groups = [
         " k/↑  Up            j/↓  Down               PgUp   Pageup        PgDn   Pagedown   Enter  Select",
-        " m    Toggle Mark   M    Clear All Marks    q/esc  Mark&Quit     Q      Quit       l      Adjust Line Space",
+        " m    Toggle Mark   M    Clear All Marks    q      Mark&Quit     Q      Quit       l      Adjust Line Space",
         " b    Bookmarks     t    TOC                s      Title&Footer  Space  AutoScroll ",
     ];
 

@@ -1,6 +1,6 @@
 use crate::app::state::ContentData;
 use crate::net::crawler::fetch_novel;
-use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 
 /// 应用状态更新消息

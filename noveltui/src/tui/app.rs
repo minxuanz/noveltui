@@ -18,9 +18,7 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(options: Options) -> Result<Self> {
-        let lines = fs::load_content(&options.file_path)?;
-        let novel = Novel::new(lines);
+    pub fn new(options: Options, novel: Novel) -> Result<Self> {
         let mut state = AppState::new(!options.simple_mode, options.speed, options.page_size);
 
         // Initial Bookmark Cache
@@ -342,9 +340,11 @@ impl App {
 
     fn handle_initial_jumps(&mut self) -> Result<()> {
         if let Some(ch) = self.options.chapter {
-            if ch > 0 && ch <= self.novel.chapters.len() {
+            if ch <= self.novel.chapters.len() {
                 self.select_chapter(ch);
                 self.state.focus = FocusArea::Content;
+            } else {
+                return Err(anyhow::anyhow!("Chapter number {} out of range.", ch));
             }
         } else if let Some(bm_num) = self.options.bookmark {
             let bookmarks = self.novel.collect_bookmarks();
@@ -352,6 +352,8 @@ impl App {
                 self.state.bookmark_state.select(Some(bm_num - 1));
                 self.jump_to_bookmark();
                 self.state.focus = FocusArea::Content;
+            } else {
+                return Err(anyhow::anyhow!("Bookmark number {} out of range.", bm_num));
             }
         } else {
             // Default to last bookmarks

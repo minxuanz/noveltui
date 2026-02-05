@@ -3,7 +3,7 @@ use clap::Parser;
 use crossterm::event::{self, Event};
 use ratatui::prelude::*;
 use webnovel::app::{
-    receive_updates, AppAction, AppState, ContentData, ContentLoader, EventHandler,
+    AppAction, AppState, ContentData, ContentLoader, EventHandler, receive_updates,
 };
 use webnovel::net::crawler::UrlHandler;
 use webnovel::ui::netrender::render_ui;

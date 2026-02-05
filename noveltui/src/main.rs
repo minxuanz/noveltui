@@ -1,15 +1,13 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use clap::Parser;
 use noveltui::cmd::args::Options;
 use noveltui::core::novel::Novel;
 use noveltui::infra::fs;
 use noveltui::tui::app::App;
+use std::path::Path;
 
-fn main() -> Result<()> {
-    let args = Options::parse();
-
-    let extension = args
-        .file_path
+fn initialize_novel(file_path: &Path) -> Result<Novel> {
+    let extension = file_path
         .extension()
         .and_then(|s| s.to_str())
         .map(|s| s.to_lowercase());
@@ -20,32 +18,42 @@ fn main() -> Result<()> {
         ));
     }
 
-    let lines = match fs::load_content(&args.file_path) {
-        Ok(lines) => lines,
-        Err(e) => {
-            return Err(anyhow!("{}: {}", args.file_path.display(), e));
-        }
-    };
+    let lines = fs::load_content(file_path)?;
+    Ok(Novel::new(lines))
+}
 
-    let novel = Novel::new(lines);
+fn show_bookmarks_cli(novel: &Novel, file_path: &Path) {
+    let bookmarks = novel.collect_bookmarks();
+
+    if bookmarks.is_empty() {
+        println!("No bookmarks found.");
+    } else {
+        println!("Bookmarks in {:?}:", file_path);
+        for (i, b) in bookmarks.iter().enumerate() {
+            let chapter_title = novel
+                .chapters
+                .get(b.chapter_index)
+                .map(|c| c.title.as_ref())
+                .unwrap_or("Unknown Chapter");
+            println!("{}. [{}] {}", i + 1, chapter_title, b.content);
+        }
+    }
+}
+
+fn main() -> Result<()> {
+    let args = Options::parse();
+
+    let novel = initialize_novel(&args.file_path)?;
+
     // CLI Mode: Show bookmarks
     if args.show_bookmarks {
-        let bookmarks = novel.collect_bookmarks();
-
-        if bookmarks.is_empty() {
-            println!("No bookmarks found.");
-        } else {
-            println!("Bookmarks in {:?}:", args.file_path);
-            for (i, b) in bookmarks.iter().enumerate() {
-                println!("{}. {}", i + 1, b.content);
-            }
-        }
+        show_bookmarks_cli(&novel, &args.file_path);
         return Ok(());
     }
 
     // TUI Mode
     let terminal = ratatui::init();
-    let result = App::new(args)?.run(terminal);
+    let result = App::new(args, novel)?.run(terminal);
     ratatui::restore();
 
     result

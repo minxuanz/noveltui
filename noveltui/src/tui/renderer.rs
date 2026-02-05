@@ -1,11 +1,11 @@
 use crate::core::novel::Novel;
 use crate::tui::state::{AppState, FocusArea};
 use ratatui::{
+    Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span, Text},
     widgets::*,
-    Frame,
 };
 use std::path::Path;
 

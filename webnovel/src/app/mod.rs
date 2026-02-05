@@ -5,4 +5,4 @@ pub mod update;
 // 重新导出常用类型
 pub use event::{AppAction, EventHandler, InputMode};
 pub use state::{AppState, ContentData, InputHistory};
-pub use update::{receive_updates, ContentLoader, UpdateMessage};
+pub use update::{ContentLoader, UpdateMessage, receive_updates};

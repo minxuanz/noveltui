@@ -90,7 +90,7 @@ fn render_input_footer(frame: &mut Frame, area: Rect, input_buffer: &str) {
 
     frame.render_widget(
         Paragraph::new(format!("Please input URL: {}_", input_buffer))
-            .style(Style::default().fg(Color::White).bold()),
+            .style(Style::default().bold()),
         foot_chunks[0],
     );
 
@@ -98,7 +98,7 @@ fn render_input_footer(frame: &mut Frame, area: Rect, input_buffer: &str) {
     frame.render_widget(
         Paragraph::new(" [Enter] Go  [Esc] Cancel")
             .alignment(Alignment::Right)
-            .style(Style::default().fg(Color::Gray)),
+            .style(Style::default()),
         foot_chunks[1],
     );
 }
@@ -138,7 +138,7 @@ fn render_status_footer(
     frame.render_widget(
         Paragraph::new(format!(" URL: {} ", url))
             .alignment(Alignment::Left)
-            .style(Style::default().fg(Color::Gray)),
+            .style(Style::default()),
         foot_chunks[1],
     );
 
@@ -155,7 +155,7 @@ fn render_status_footer(
     frame.render_widget(
         Paragraph::new(help_text)
             .alignment(Alignment::Right)
-            .style(Style::default().fg(Color::Gray)),
+            .style(Style::default()),
         foot_chunks[2],
     );
 }

@@ -8,6 +8,7 @@ use ratatui::{
     widgets::*,
 };
 use std::path::Path;
+use std::rc::Rc;
 
 pub fn render_ui(frame: &mut Frame, state: &mut AppState, novel: &Novel, file_path: &Path) {
     let chunks = get_main_layout(frame.area(), state);
@@ -34,7 +35,7 @@ pub fn render_ui(frame: &mut Frame, state: &mut AppState, novel: &Novel, file_pa
     }
 }
 
-fn get_main_layout(area: Rect, state: &AppState) -> Vec<Rect> {
+fn get_main_layout(area: Rect, state: &AppState) -> Rc<[Rect]> {
     let mut constraints = Vec::new();
     if state.show_title {
         constraints.push(Constraint::Length(1)); // Title
@@ -51,7 +52,6 @@ fn get_main_layout(area: Rect, state: &AppState) -> Vec<Rect> {
         .direction(Direction::Vertical)
         .constraints(constraints)
         .split(area)
-        .to_vec()
 }
 
 fn render_dim_layer(frame: &mut Frame, area: Rect) {
@@ -176,11 +176,7 @@ fn render_content(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &N
         })
         .collect();
 
-    let highlight = if state.focus == FocusArea::Content {
-        Style::default().fg(Color::Rgb(168, 216, 185))
-    } else {
-        Style::default().fg(Color::DarkGray)
-    };
+    let highlight = Style::default().fg(Color::Rgb(168, 216, 185));
 
     let block = Block::default()
         .borders(Borders::ALL)
@@ -294,15 +290,15 @@ fn render_footer(frame: &mut Frame, area: Rect, state: &AppState, novel: &Novel)
         ),
         FocusArea::Bookmark => (
             if is_tiny { " MRK" } else { "    MARK" },
-            Color::Rgb(203, 27, 69),
+            Color::Rgb(191, 103, 102),
         ),
     };
 
     frame.render_widget(
         Paragraph::new(label).alignment(Alignment::Left).style(
             Style::default()
-                .fg(Color::White)
                 .bg(color)
+                .fg(Color::Green)
                 .add_modifier(Modifier::BOLD),
         ),
         layout[chunk_idx],
@@ -317,8 +313,7 @@ fn render_footer(frame: &mut Frame, area: Rect, state: &AppState, novel: &Novel)
 
     if let Some(meta) = novel.chapters.get(toc_idx) {
         frame.render_widget(
-            Paragraph::new(format!(" {} ", meta.title.as_ref()))
-                .style(Style::default().fg(Color::White)),
+            Paragraph::new(format!(" {} ", meta.title.as_ref())).style(Style::default()),
             layout[chunk_idx],
         );
         chunk_idx += 1;
@@ -358,7 +353,7 @@ fn render_footer(frame: &mut Frame, area: Rect, state: &AppState, novel: &Novel)
             frame.render_widget(
                 Paragraph::new(progress_text)
                     .alignment(Alignment::Right)
-                    .style(Style::default().fg(Color::White)),
+                    .style(Style::default()),
                 layout[chunk_idx],
             );
             chunk_idx += 1;
@@ -369,7 +364,7 @@ fn render_footer(frame: &mut Frame, area: Rect, state: &AppState, novel: &Novel)
         frame.render_widget(
             Paragraph::new(help_text)
                 .alignment(Alignment::Center)
-                .style(Style::default().fg(Color::Black).bg(Color::Gray)),
+                .style(Style::default().fg(Color::Black).bg(Color::DarkGray)),
             layout[chunk_idx],
         );
     }

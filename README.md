@@ -7,6 +7,7 @@ A tui novel reader, Powered by [ratatui](https://github.com/ratatui/ratatui)
 ## Features
 - **Lightweight & Efficient**: Small binary size, low memory usage 
 - **Chapter Parsing**: Automatically detects and navigates chapters by regex and generate toc
+- **Resume reading**: Press q to quit and auto mark a bookmark; next time you open the book, it jumps back to last bookmarks.
 - **Bookmarks**: Add, remove, and manage bookmarks for easy navigation
 - **Auto-Read Mode**: Hands-free reading with automatic scrolling
 - **Read from website**: `dzstui` can read from website (WIP)
@@ -76,6 +77,7 @@ You can pass `--regex <YOUR CUSTOM REGEX>` to parse title.
 | `b`          | Toggle bookmark menu            |
 | `t`          | Toggle toc                      |
 | `ctrl` + `z` | Suspend (unix)                  |
+| `l`          | Adjust line space               |  
 
 <div align="center">
 

@@ -29,6 +29,8 @@ pub enum AppAction {
     InputChar(char),
     InputBackspace,
 
+    // 增加行间距
+    IncreaseLineSpace,
     // 无操作
     None,
 }
@@ -80,6 +82,7 @@ impl EventHandler {
             KeyCode::Char('p') => AppAction::PrevChapter,
             KeyCode::Char('r') => AppAction::Refresh,
             KeyCode::Char('s') => AppAction::ToggleTitle,
+            KeyCode::Char('l') => AppAction::IncreaseLineSpace,
             KeyCode::PageUp => AppAction::PageUp,
             KeyCode::PageDown => AppAction::PageDown,
             _ => AppAction::None,

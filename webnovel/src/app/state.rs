@@ -120,6 +120,7 @@ pub struct AppState {
     pub page_size: usize,
     pub show_title: bool,
     pub history: InputHistory,
+    pub inc_line_space: bool,
 }
 
 impl AppState {
@@ -134,6 +135,7 @@ impl AppState {
             page_size,
             show_title: true,
             history: InputHistory::new(),
+            inc_line_space: false,
         }
     }
 

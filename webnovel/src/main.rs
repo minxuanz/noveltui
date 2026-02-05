@@ -74,6 +74,7 @@ fn run_app(terminal: &mut Terminal<impl Backend>, args: Args) -> Result<()> {
                 &state.input_buffer,
                 content_data.is_loading,
                 content_data.success,
+                state.inc_line_space,
             )
         })?;
 
@@ -127,6 +128,9 @@ fn run_app(terminal: &mut Terminal<impl Backend>, args: Args) -> Result<()> {
                             state.reset_cursor();
                         }
                         AppAction::ToggleTitle => state.show_title = !state.show_title,
+                        AppAction::IncreaseLineSpace => {
+                            state.inc_line_space = !state.inc_line_space;
+                        }
                         AppAction::None => {}
                     }
                 }

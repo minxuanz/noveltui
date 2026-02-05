@@ -15,6 +15,7 @@ pub fn render_ui(
     input_buffer: &str,
     is_loading: bool,
     loading_success: bool,
+    inc_line_space: bool,
 ) {
     let constraint = if show_input || show_title {
         [Constraint::Min(1), Constraint::Length(1)]
@@ -34,7 +35,9 @@ pub fn render_ui(
         .map(|line| {
             let wrapped = textwrap::wrap(line, inner_width);
             let mut lines: Vec<Line> = wrapped.into_iter().map(|c| Line::raw(c)).collect();
-            lines.push(Line::raw(""));
+            if inc_line_space {
+                lines.push(Line::raw(""));
+            }
             ListItem::new(lines)
         })
         .collect();

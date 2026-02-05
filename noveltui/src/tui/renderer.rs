@@ -1,11 +1,11 @@
 use crate::core::novel::Novel;
 use crate::tui::state::{AppState, FocusArea};
 use ratatui::{
-    Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span, Text},
     widgets::*,
+    Frame,
 };
 use std::path::Path;
 
@@ -121,7 +121,7 @@ fn render_toc(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &Novel
         width: area.width.saturating_add(2),
         height: area.height.saturating_add(2),
     };
-    frame.render_widget(Clear, clear_area); // 清理背景
+    frame.render_widget(Clear, clear_area); // Clear background
 
     let items: Vec<ListItem> = novel
         .chapters
@@ -163,21 +163,18 @@ fn render_content(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &N
         "".to_string()
     };
 
- let items: Vec<ListItem> = chapter_lines
-    .iter()
-    .map(|line| {
-        let wrapped = textwrap::wrap(line, inner_width);    
-        let mut lines: Vec<Line> = wrapped
-            .into_iter()
-            .map(|c| Line::raw(c))
-            .collect();
+    let items: Vec<ListItem> = chapter_lines
+        .iter()
+        .map(|line| {
+            let wrapped = textwrap::wrap(line, inner_width);
+            let mut lines: Vec<Line> = wrapped.into_iter().map(|c| Line::raw(c)).collect();
 
-        if state.inc_line_space {
-            lines.push(Line::raw("")); 
-        }
-        ListItem::new(Text::from(lines))
-    })
-    .collect();
+            if state.inc_line_space {
+                lines.push(Line::raw(""));
+            }
+            ListItem::new(Text::from(lines))
+        })
+        .collect();
 
     let highlight = if state.focus == FocusArea::Content {
         Style::default().fg(Color::Rgb(168, 216, 185))
@@ -245,8 +242,8 @@ fn render_bookmarks(frame: &mut Frame, area: Rect, state: &mut AppState, novel: 
 
 fn render_footer(frame: &mut Frame, area: Rect, state: &AppState, novel: &Novel) {
     let width = area.width;
-    let is_narrow = width < 70; // 窄屏阈值
-    let is_tiny = width < 45; // 极小屏阈值
+    let is_narrow = width < 70; // Narrow screen threshold
+    let is_tiny = width < 45; // Tiny screen threshold
 
     let mut constraints = Vec::new();
 
@@ -320,7 +317,8 @@ fn render_footer(frame: &mut Frame, area: Rect, state: &AppState, novel: &Novel)
 
     if let Some(meta) = novel.chapters.get(toc_idx) {
         frame.render_widget(
-            Paragraph::new(format!(" {} ", meta.title.as_ref())).style(Style::default().fg(Color::White)),
+            Paragraph::new(format!(" {} ", meta.title.as_ref()))
+                .style(Style::default().fg(Color::White)),
             layout[chunk_idx],
         );
         chunk_idx += 1;

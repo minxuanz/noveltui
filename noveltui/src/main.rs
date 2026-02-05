@@ -8,12 +8,16 @@ use noveltui::tui::app::App;
 fn main() -> Result<()> {
     let args = Options::parse();
 
-    let extension = args.file_path.extension()
+    let extension = args
+        .file_path
+        .extension()
         .and_then(|s| s.to_str())
         .map(|s| s.to_lowercase());
 
     if extension.as_deref() != Some("txt") {
-        return Err(anyhow!("Unsupported file format. Please provide a .txt file."));
+        return Err(anyhow!(
+            "Unsupported file format. Please provide a .txt file."
+        ));
     }
 
     let lines = match fs::load_content(&args.file_path) {

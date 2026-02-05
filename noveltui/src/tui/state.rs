@@ -31,8 +31,6 @@ pub struct AppState {
     pub auto_scroll_speed_ms: u64,
     pub last_scroll_time: std::time::Instant,
 
-
-
     // Current Navigation
     pub active_chapter_index: usize,
 
@@ -48,7 +46,7 @@ pub struct AppState {
     // whether remove bookmark
     pub should_remove_bookmark: bool,
 
-    // whether increase line space 
+    // whether increase line space
     pub inc_line_space: bool,
 }
 

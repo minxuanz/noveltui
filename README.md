@@ -10,7 +10,7 @@ A tui novel reader, Powered by [ratatui](https://github.com/ratatui/ratatui)
 - **Resume reading**: Press q to quit and auto mark a bookmark; next time you open the book, it jumps back to last bookmarks.
 - **Bookmarks**: Add, remove, and manage bookmarks for easy navigation
 - **Auto-Read Mode**: Hands-free reading with automatic scrolling
-- **Read from website**: `dzstui` can read from website (WIP)
+- **Read from website**: `webnovel` can read from website (WIP)
 
 ## Installation
 
@@ -18,8 +18,8 @@ A tui novel reader, Powered by [ratatui](https://github.com/ratatui/ratatui)
 cargo install noveltui
 # only install noveltui
 cargo install noveltui --bin noveltui
-# only install dzstui
-cargo insatll noveltui --bin dzstui
+# only install webnovel
+cargo insatll noveltui --bin webnovel
 ```
 
 ## Build from Source
@@ -30,7 +30,7 @@ cargo build --release
 ```
 
 `target/release/noveltui` read from local txt<br>
-`target/release/dzstui` read from website
+`target/release/webnovel` read from website
 
 ## Usage
 
@@ -39,11 +39,11 @@ cargo build --release
 ```
 
 ```bash
-./dzstui --url website
+./webnovel --url website
 #e.g.
-./dzstui --url https://ixdzs8.com/read/508569/p1.html
+./webnovel --url https://ixdzs8.com/read/508569/p1.html
 ```
-> Tips: dzstui only supoort `https://ixdzs8.com/` now, and need install chrome
+> Tips: webnovel only supoort `https://ixdzs8.com/` now, and need install chrome
 
 ## Supported 
 ### os
@@ -81,38 +81,28 @@ You can pass `--regex <YOUR CUSTOM REGEX>` to parse title.
 
 <div align="center">
 
-![content](./assets/content.png)
-*Content*
+![content](./assets/content1.png)
+</div>
+
+<div align="center">
+
+![toc](./assets/toc1.png)
 
 </div>
 
 <div align="center">
 
-![toc](./assets/toc.png)
-*toc*
+![bookmark](./assets/bookmark1.png) 
 
 </div>
 
-<div align="center">
 
-![bookmark](./assets/bookmark.png) 
-*bookmark*
-
-</div>
+### webnovel (online read) (WIP)
 
 <div align="center">
 
-![toc](./assets/tmux.png)
-*in tmux*
-
-</div>
-
-### dzstui (online read) (WIP)
-
-<div align="center">
-
-![dzstui](./assets/dzstui.png)
-*dzstui*
+![webnovel](./assets/webnovel.png)
+*webnovel*
 
 </div>
 

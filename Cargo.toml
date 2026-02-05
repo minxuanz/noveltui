@@ -1,34 +1,16 @@
-[package]
-name = "noveltui"
-version = "0.1.3"
-edition = "2024"
-authors = ["minxuanz <manypotatoes1@gmail.com>"]
-description = "A terminal-based novel reader (TUI)"
-license = "MIT"
-repository = "https://github.com/minxuanz/noveltui"
-keywords = ["tui", "novel", "reader", "ratatui"]
-categories = ["command-line-utilities"]
+[workspace]
+members = ["noveltui", "webnovel"]
+resolver = "2"
 
-[[bin]]
-name = "dzstui"
-path = "src/bin/net.rs"
+[workspace.dependencies]
+anyhow = "1.0.100"
+clap = { version = "4.5.53", features = ["derive"] }
+crossterm = "0.29.0"
+ratatui = "0.29.0"
+textwrap = "0.16.2"
 
 [profile.release]
 opt-level = 3
 lto = true
 codegen-units = 1
 strip = "symbols"
-
-[dependencies]
-anyhow = "1.0.100"
-chardetng = "0.1.17"
-clap = { version = "4.5.53", features = ["derive"] }
-crossterm = "0.29.0"
-encoding_rs = "0.8.35"
-headless_chrome = "1.0.20"
-ratatui = "0.29.0"
-regex = "1.12.2"
-scraper = "0.25.0"
-signal-hook = "0.3.18"
-textwrap = "0.16.2"
-tokio = { version = "1.48.0", features = ["full"] }

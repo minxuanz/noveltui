@@ -1,0 +1,19 @@
+[package]
+name = "webnovel"
+version = "0.1.0"
+edition = "2024"
+authors = ["minxuanz <manypotatoes1@gmail.com>"]
+description = "A terminal-based network novel reader (TUI)"
+license = "MIT"
+repository = "https://github.com/minxuanz/noveltui"
+keywords = ["tui", "novel", "reader", "ratatui", "network"]
+categories = ["command-line-utilities"]
+
+[dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true }
+crossterm = { workspace = true }
+headless_chrome = "1.0.20"
+ratatui = { workspace = true }
+scraper = "0.25.0"
+textwrap = { workspace = true }

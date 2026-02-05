@@ -12,7 +12,7 @@
 - **书签管理**：添加、删除和管理书签，便于快速定位
 - **记录上次阅读位置**：按q退出自动标记书签，下次阅读自动跳转
 - **自动阅读模式**：无需手动翻页，自动滚动阅读
-- **在线阅读**：`dzstui` 支持从网站获取并阅读小说（开发中）
+- **在线阅读**：`webnovel` 支持从网站获取并阅读小说（开发中）
 
 ## 安装
 
@@ -20,8 +20,8 @@
 cargo install noveltui
 # only install noveltui
 cargo install noveltui --bin noveltui
-# only install dzstui
-cargo insatll noveltui --bin dzstui
+# only install webnovel
+cargo insatll noveltui --bin webnovel
 ```
 
 ## 从源代码构建
@@ -32,7 +32,7 @@ cargo build --release
 ```
 
 `target/release/noveltui` 从本地txt文件阅读  
-`target/release/dzstui` 从网站阅读
+`target/release/webnovel` 从网站阅读
 
 ## 使用方法
 
@@ -41,11 +41,11 @@ cargo build --release
 ```
 
 ```bash
-./dzstui --url 网站地址
+./webnovel --url 网站地址
 # 例如：
-./dzstui --url https://ixdzs8.com/read/508569/p1.html
+./webnovel --url https://ixdzs8.com/read/508569/p1.html
 ```
-> 提示：目前 dzstui 仅支持 `https://ixdzs8.com/` 网站, 且需安装chrome浏览器
+> 提示：目前 webnovel 仅支持 `https://ixdzs8.com/` 网站, 且需安装chrome浏览器
 
 ## 支持情况
 ### 操作系统
@@ -107,10 +107,10 @@ cargo build --release
 
 </div>
 
-### dzstui（在线阅读，开发中）
+### webnovel（在线阅读，开发中）
 
 <div align="center">
 
-![dzstui界面](./assets/dzstui.png)
+![webnovel界面](./assets/webnovel.png)
 
 </div>

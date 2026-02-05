@@ -224,9 +224,7 @@ impl App {
                     // move last
                     let bookmarks = self.novel.collect_bookmarks();
                     if !bookmarks.is_empty() {
-                        self.state
-                            .bookmark_state
-                            .select(Some(bookmarks.len() - 1));
+                        self.state.bookmark_state.select(Some(bookmarks.len() - 1));
                     }
                 }
             }

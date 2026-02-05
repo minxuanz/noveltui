@@ -1,0 +1,21 @@
+[package]
+name = "noveltui"
+version = "0.1.4"
+edition = "2024"
+authors = ["minxuanz <manypotatoes1@gmail.com>"]
+description = "A terminal-based novel reader (TUI)"
+license = "MIT"
+repository = "https://github.com/minxuanz/noveltui"
+keywords = ["tui", "novel", "reader", "ratatui"]
+categories = ["command-line-utilities"]
+
+[dependencies]
+anyhow = { workspace = true }
+chardetng = "0.1.17"
+clap = { workspace = true }
+crossterm = { workspace = true }
+encoding_rs = "0.8.35"
+ratatui = { workspace = true }
+regex = "1.12.2"
+signal-hook = "0.3.18"
+textwrap = { workspace = true }

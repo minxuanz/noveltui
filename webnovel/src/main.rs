@@ -1,8 +1,8 @@
 use anyhow::Result;
 use clap::Parser;
 use crossterm::event::{self, Event, KeyCode};
-use noveltui::net::crawler;
-use noveltui::tui::netrender::{AppState, render_ui};
+use webnovel::net::crawler;
+use webnovel::ui::netrender::{render_ui, AppState};
 use ratatui::prelude::*;
 use std::sync::mpsc;
 use std::thread;
@@ -92,7 +92,7 @@ fn run_loop(
     let mut history_index: i32 = -1;
 
     loop {
-        // 检查 channel 消消息并更新本地状态
+        // Check channel messages and update local state
         while let Ok(result) = rx.try_recv() {
             match result {
                 Ok(update) => {
@@ -118,10 +118,10 @@ fn run_loop(
         if event::poll(std::time::Duration::from_millis(16))? {
             if let Event::Key(key) = event::read()? {
                 if key.kind == crossterm::event::KeyEventKind::Press {
-                    // === 输入模式逻辑 ===
+                    // === Input mode logic ===
                     if state.show_input {
                         match key.code {
-                            // 取消
+                            // Cancel
                             KeyCode::Esc => {
                                 state.show_input = false;
                                 state.input_buffer.clear();
@@ -131,39 +131,40 @@ fn run_loop(
                                 state.input_buffer.clear();
                                 break;
                             }
-                            // 上键：历史上一条
+                            // Up arrow: previous history
                             KeyCode::Up => {
                                 if history_index < (history.len() as i32 - 1) {
                                     history_index += 1;
                                     state.input_buffer = history[history_index as usize].clone();
                                 }
                             }
-                            // 下键：历史下一条
+                            // Down arrow: next history
                             KeyCode::Down => {
                                 if history_index > -1 {
                                     history_index -= 1;
                                     if history_index == -1 {
                                         state.input_buffer.clear();
                                     } else {
-                                        state.input_buffer = history[history_index as usize].clone();
+                                        state.input_buffer =
+                                            history[history_index as usize].clone();
                                     }
                                 }
                             }
-                            // 输入字符（包括字母、数字、符号）
+                            // Input characters (letters, numbers, symbols)
                             KeyCode::Char(c) => {
                                 if history_index != -1 {
                                     history_index = -1;
                                 }
                                 state.input_buffer.push(c);
                             }
-                            // 退格键删除
+                            // Backspace
                             KeyCode::Backspace => {
                                 if history_index != -1 {
                                     history_index = -1;
                                 }
                                 state.input_buffer.pop();
                             }
-                            // 确认跳转
+                            // Confirm jump
                             KeyCode::Enter => {
                                 let input_url = state.input_buffer.trim();
                                 if !input_url.is_empty()
@@ -182,14 +183,14 @@ fn run_loop(
                                     };
                                     let _ = tx.send(Err(error_msg.to_string()));
                                 }
-                                // 重置并退出输入模式
+                                // Reset and exit input mode
                                 state.show_input = false;
                                 state.input_buffer.clear();
                             }
                             _ => {}
                         }
                     }
-                    // === 正常模式逻辑 ===
+                    // === Normal mode logic ===
                     else {
                         match key.code {
                             KeyCode::Char('q') => break,

@@ -34,7 +34,7 @@ pub fn resolve_event(ev: Event, state: &AppState) -> Action {
             KeyCode::Char('z') if key.modifiers.contains(KeyModifiers::CONTROL) => Action::Suspend,
 
             KeyCode::Char('q') => Action::SaveAndQuit,
-            KeyCode::Esc       => Action::QiutPopMenu,
+            KeyCode::Esc => Action::QiutPopMenu,
             KeyCode::Char('Q') => Action::Quit,
             KeyCode::Char('b') => Action::ToggleBookmarkMenu,
             KeyCode::Char('t') => Action::ToggleTocMenu,

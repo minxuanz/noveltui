@@ -1,11 +1,12 @@
 use anyhow::Result;
 use clap::Parser;
-use crossterm::event::{self, Event, KeyCode};
-use webnovel::net::crawler;
-use webnovel::ui::netrender::{render_ui, AppState};
+use crossterm::event::{self, Event};
 use ratatui::prelude::*;
-use std::sync::mpsc;
-use std::thread;
+use webnovel::app::{
+    receive_updates, AppAction, AppState, ContentData, ContentLoader, EventHandler,
+};
+use webnovel::net::crawler::UrlHandler;
+use webnovel::ui::netrender::render_ui;
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -17,290 +18,121 @@ struct Args {
     page_size: usize,
 }
 
-struct AppStateUpdate {
-    content: Vec<String>,
-    title: String,
-    is_loading: bool,
-    success: bool,
-}
-
 fn main() -> Result<()> {
     let args = Args::parse();
+
+    // 验证初始 URL
     if let Some(ref url) = args.url {
-        if !url.starts_with("https://ixdzs") {
-            eprintln!("Error: URL don't supported.");
+        if !UrlHandler::is_valid(url) {
+            eprintln!("Error: URL not supported.");
             return Ok(());
         }
     }
+
     let mut terminal = ratatui::init();
-
-    let mut state = AppState {
-        content_state: ratatui::widgets::ListState::default(),
-        loading_success: false,
-        is_loading: true,
-        show_input: false,
-        input_buffer: String::new(),
-        page_size: args.page_size,
-        show_title: true,
-    };
-    state.content_state.select(Some(0));
-
-    let (tx, rx) = mpsc::channel::<Result<AppStateUpdate, String>>();
-
-    let current_url = args.url.clone().unwrap_or_else(|| "".to_string());
-
-    if args.url.is_some() {
-        set_loading_state(&tx, &current_url);
-        load_chapter(tx.clone(), current_url.clone());
-    } else {
-        // Send initial prompt
-        let prompt_content = vec![
-            "Welcome".to_string(),
-            "Press / to enter a URL and start reading.".to_string(),
-            "按下 / 键 输入小说章节网址并开始阅读".to_string(),
-            "Only Supported sites: https://ixdzs8.com".to_string(),
-            "仅支持 https://ixdzs8.com".to_string(),
-            "Example: https://ixdzs8.com/read/12345/p1.html".to_string(),
-        ];
-        let update = AppStateUpdate {
-            content: prompt_content,
-            title: "NovelTUI".to_string(),
-            is_loading: false,
-            success: true,
-        };
-        let _ = tx.send(Ok(update));
-    }
-    let result = run_loop(&mut terminal, &mut state, rx, tx, current_url);
-
+    let result = run_app(&mut terminal, args);
     ratatui::restore();
+
     result
 }
 
-fn run_loop(
-    terminal: &mut Terminal<impl Backend>,
-    state: &mut AppState,
-    rx: mpsc::Receiver<Result<AppStateUpdate, String>>,
-    tx: mpsc::Sender<Result<AppStateUpdate, String>>,
-    mut current_url: String,
-) -> Result<()> {
-    let mut display_content = vec!["Initializing...".to_string()];
-    let mut display_title = "Waiting...".to_string();
-    let mut is_loading = true;
-    let mut loading_success = false;
+fn run_app(terminal: &mut Terminal<impl Backend>, args: Args) -> Result<()> {
+    // 初始化状态
+    let mut state = AppState::new(args.page_size);
+    let mut event_handler = EventHandler::new();
+    let (loader, receiver) = ContentLoader::new();
 
-    let mut history: Vec<String> = Vec::new();
-    let mut history_index: i32 = -1;
+    // 当前显示的内容和 URL
+    let mut content_data = ContentData::welcome();
+    let mut current_url = args.url.clone().unwrap_or_default();
 
+    // 初始加载
+    if let Some(url) = args.url {
+        loader.send_loading(&url);
+        loader.load(url);
+    } else {
+        loader.send_welcome();
+    }
+
+    // 主循环
     loop {
-        // Check channel messages and update local state
-        while let Ok(result) = rx.try_recv() {
-            match result {
-                Ok(update) => {
-                    display_content = update.content;
-                    display_title = update.title;
-                    is_loading = update.is_loading;
-                    loading_success = update.success;
-                }
-                Err(e) => {
-                    display_content = vec![e];
-                    display_title = "Error".to_string();
-                    is_loading = false;
-                    loading_success = false;
-                }
-            }
+        // 接收更新
+        if let Some(new_data) = receive_updates(&receiver) {
+            content_data = new_data;
         }
 
-        state.is_loading = is_loading;
-        state.loading_success = loading_success;
+        // 渲染 UI
+        terminal.draw(|f| {
+            render_ui(
+                f,
+                &mut state.content_state,
+                &content_data.lines,
+                &content_data.title,
+                &current_url,
+                state.show_input,
+                state.show_title,
+                &state.input_buffer,
+                content_data.is_loading,
+                content_data.success,
+            )
+        })?;
 
-        terminal.draw(|f| render_ui(f, state, &display_content, &display_title, &current_url))?;
-
+        // 处理事件
         if event::poll(std::time::Duration::from_millis(16))? {
             if let Event::Key(key) = event::read()? {
                 if key.kind == crossterm::event::KeyEventKind::Press {
-                    // === Input mode logic ===
-                    if state.show_input {
-                        match key.code {
-                            // Cancel
-                            KeyCode::Esc => {
-                                state.show_input = false;
-                                state.input_buffer.clear();
+                    let action = event_handler.handle_key(key.code);
+
+                    match action {
+                        AppAction::Quit => break,
+                        AppAction::StartInput => state.start_input(),
+                        AppAction::CancelInput => state.cancel_input(),
+                        AppAction::ConfirmInput => {
+                            let input = state.confirm_input();
+                            if UrlHandler::is_valid(&input) {
+                                current_url = input.clone();
+                                state.history.add(input);
+                                loader.send_loading(&current_url);
+                                loader.load(current_url.clone());
+                                state.reset_cursor();
+                            } else {
+                                content_data = ContentData::error(
+                                    UrlHandler::validation_error(&input).to_string(),
+                                );
                             }
-                            KeyCode::Char('q') => {
-                                state.show_input = false;
-                                state.input_buffer.clear();
-                                break;
-                            }
-                            // Up arrow: previous history
-                            KeyCode::Up => {
-                                if history_index < (history.len() as i32 - 1) {
-                                    history_index += 1;
-                                    state.input_buffer = history[history_index as usize].clone();
-                                }
-                            }
-                            // Down arrow: next history
-                            KeyCode::Down => {
-                                if history_index > -1 {
-                                    history_index -= 1;
-                                    if history_index == -1 {
-                                        state.input_buffer.clear();
-                                    } else {
-                                        state.input_buffer =
-                                            history[history_index as usize].clone();
-                                    }
-                                }
-                            }
-                            // Input characters (letters, numbers, symbols)
-                            KeyCode::Char(c) => {
-                                if history_index != -1 {
-                                    history_index = -1;
-                                }
-                                state.input_buffer.push(c);
-                            }
-                            // Backspace
-                            KeyCode::Backspace => {
-                                if history_index != -1 {
-                                    history_index = -1;
-                                }
-                                state.input_buffer.pop();
-                            }
-                            // Confirm jump
-                            KeyCode::Enter => {
-                                let input_url = state.input_buffer.trim();
-                                if !input_url.is_empty()
-                                    && input_url.starts_with("https://ixdzs8.com/read/")
-                                {
-                                    current_url = input_url.to_string();
-                                    history.push(input_url.to_string());
-                                    set_loading_state(&tx, &current_url);
-                                    load_chapter(tx.clone(), current_url.clone());
-                                    state.content_state.select(Some(0));
-                                } else {
-                                    let error_msg = if input_url.is_empty() {
-                                        "URL cannot be empty."
-                                    } else {
-                                        "Invalid URL: Only https://ixdzs... supported."
-                                    };
-                                    let _ = tx.send(Err(error_msg.to_string()));
-                                }
-                                // Reset and exit input mode
-                                state.show_input = false;
-                                state.input_buffer.clear();
-                            }
-                            _ => {}
                         }
-                    }
-                    // === Normal mode logic ===
-                    else {
-                        match key.code {
-                            KeyCode::Char('q') => break,
-                            KeyCode::Char('/') => {
-                                state.show_input = true;
-                                state.input_buffer.clear();
-                                history_index = -1;
-                            }
-                            KeyCode::Char('j') | KeyCode::Down => {
-                                let i = state.content_state.selected().unwrap_or(0);
-                                if i < display_content.len().saturating_sub(1) {
-                                    state.content_state.select(Some(i + 1));
-                                }
-                            }
-                            KeyCode::Char('k') | KeyCode::Up => {
-                                let i = state.content_state.selected().unwrap_or(0);
-                                if i > 0 {
-                                    state.content_state.select(Some(i - 1));
-                                }
-                            }
-                            KeyCode::Char('n') => {
-                                current_url = update_url(&current_url, 1);
-                                set_loading_state(&tx, &current_url);
-                                load_chapter(tx.clone(), current_url.clone());
-                                state.content_state.select(Some(0));
-                            }
-                            KeyCode::Char('p') => {
-                                current_url = update_url(&current_url, -1);
-                                set_loading_state(&tx, &current_url);
-                                load_chapter(tx.clone(), current_url.clone());
-                                state.content_state.select(Some(0));
-                            }
-                            KeyCode::Char('r') => {
-                                set_loading_state(&tx, &current_url);
-                                load_chapter(tx.clone(), current_url.clone());
-                                state.content_state.select(Some(0));
-                            }
-                            KeyCode::Char('s') => {
-                                state.show_title = !state.show_title;
-                            }
-                            KeyCode::PageUp => {
-                                let i = state.content_state.selected().unwrap_or(0);
-                                let page_size = state.page_size;
-                                if i >= page_size {
-                                    state.content_state.select(Some(i - page_size));
-                                } else {
-                                    state.content_state.select(Some(0));
-                                }
-                            }
-                            KeyCode::PageDown => {
-                                let i = state.content_state.selected().unwrap_or(0);
-                                let page_size = state.page_size;
-                                state.content_state.select(Some(i + page_size));
-                            }
-                            _ => {}
+                        AppAction::InputChar(c) => state.handle_char_input(c),
+                        AppAction::InputBackspace => state.handle_backspace(),
+                        AppAction::HistoryUp => state.navigate_history_up(),
+                        AppAction::HistoryDown => state.navigate_history_down(),
+                        AppAction::MoveUp => state.move_cursor_up(),
+                        AppAction::MoveDown => state.move_cursor_down(content_data.lines.len()),
+                        AppAction::PageUp => state.page_up(),
+                        AppAction::PageDown => state.page_down(content_data.lines.len()),
+                        AppAction::NextChapter => {
+                            current_url = UrlHandler::update_chapter(&current_url, 1);
+                            loader.send_loading(&current_url);
+                            loader.load(current_url.clone());
+                            state.reset_cursor();
                         }
+                        AppAction::PrevChapter => {
+                            current_url = UrlHandler::update_chapter(&current_url, -1);
+                            loader.send_loading(&current_url);
+                            loader.load(current_url.clone());
+                            state.reset_cursor();
+                        }
+                        AppAction::Refresh => {
+                            loader.send_loading(&current_url);
+                            loader.load(current_url.clone());
+                            state.reset_cursor();
+                        }
+                        AppAction::ToggleTitle => state.show_title = !state.show_title,
+                        AppAction::None => {}
                     }
                 }
             }
         }
     }
+
     Ok(())
-}
-
-fn load_chapter(tx: mpsc::Sender<Result<AppStateUpdate, String>>, url: String) {
-    thread::spawn(move || {
-        let result = match crawler::fetch_novel(&url) {
-            Ok(page) => Ok(AppStateUpdate {
-                content: page.content,
-                title: page.title,
-                is_loading: false,
-                success: true,
-            }),
-            Err(e) => Err(format!("Error: {}", e)),
-        };
-        let _ = tx.send(result);
-    });
-}
-
-fn set_loading_state(tx: &mpsc::Sender<Result<AppStateUpdate, String>>, url: &str) {
-    let loading_content = vec![
-        "Loading content, please wait...".to_string(),
-        format!("URL: {}", url),
-    ];
-    let loading_title = format!("Fetching: {}", url);
-    let update = AppStateUpdate {
-        content: loading_content,
-        title: loading_title,
-        is_loading: true,
-        success: false,
-    };
-    let _ = tx.send(Ok(update));
-}
-
-fn update_url(url: &str, delta: i32) -> String {
-    let parts: Vec<&str> = url.split('/').collect();
-    if parts.len() < 5 {
-        return url.to_string();
-    }
-
-    let last = parts.last().unwrap_or(&"");
-    let chapter_num = last
-        .strip_prefix('p')
-        .and_then(|s| s.strip_suffix(".html"))
-        .and_then(|s| s.parse::<i32>().ok())
-        .unwrap_or(1);
-
-    let next_chapter = (chapter_num + delta).max(1);
-    format!(
-        "https://{}/{}/{}/p{}.html",
-        parts[2], parts[3], parts[4], next_chapter
-    )
 }

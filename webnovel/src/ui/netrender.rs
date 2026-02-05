@@ -1,28 +1,22 @@
 // src/ui/netrender.rs
 use ratatui::text::Line;
+use ratatui::widgets::ListState;
 use ratatui::{prelude::*, widgets::*};
-pub struct AppState {
-    pub content_state: ListState,
-    pub loading_success: bool,
-    pub is_loading: bool,
-    // Whether in input mode
-    pub show_input: bool,
-    // Input buffer content
-    pub input_buffer: String,
-    // page size for content display
-    pub page_size: usize,
-    // show title
-    pub show_title: bool,
-}
 
+/// 渲染 UI
 pub fn render_ui(
     frame: &mut Frame,
-    state: &mut AppState,
+    content_state: &mut ListState,
     content: &[String],
     title: &str,
     url: &str,
+    show_input: bool,
+    show_title: bool,
+    input_buffer: &str,
+    is_loading: bool,
+    loading_success: bool,
 ) {
-    let constraint = if state.show_input || state.show_title {
+    let constraint = if show_input || show_title {
         [Constraint::Min(1), Constraint::Length(1)]
     } else {
         [Constraint::Min(1), Constraint::Length(0)]
@@ -45,7 +39,7 @@ pub fn render_ui(
         })
         .collect();
 
-    let blocks = if state.show_title {
+    let blocks = if show_title {
         Block::default()
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded)
@@ -67,75 +61,98 @@ pub fn render_ui(
         )
         .highlight_symbol(" > ");
 
-    frame.render_stateful_widget(list, chunks[0], &mut state.content_state);
+    frame.render_stateful_widget(list, chunks[0], content_state);
 
     // 2. Footer Rendering
-    if state.show_input {
-        let foot_chunks = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([Constraint::Min(10), Constraint::Length(25)])
-            .split(chunks[1]);
-
-        frame.render_widget(
-            Paragraph::new(format!("Jump: {}_", state.input_buffer))
-                .style(Style::default().fg(Color::White).bold()),
-            foot_chunks[0],
-        );
-
-        // Footer hints
-        frame.render_widget(
-            Paragraph::new(" [Enter] Go  [Esc] Cancel")
-                .alignment(Alignment::Right)
-                .style(Style::default().fg(Color::Gray)),
-            foot_chunks[1],
-        );
+    if show_input {
+        render_input_footer(frame, chunks[1], input_buffer);
     } else {
-        let foot_chunks = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([
-                Constraint::Length(11),
-                Constraint::Min(1),
-                Constraint::Max(55),
-            ])
-            .split(chunks[1]);
-
-        let (status_text, status_color) = match state.is_loading {
-            true => ("  LOADING  ", Color::Yellow),
-            false if state.loading_success => ("  LOADED  ", Color::Green),
-            _ => ("  FAILED  ", Color::Red),
-        };
-
-        let current_line = state.content_state.selected().map(|i| i + 1).unwrap_or(0);
-        let total_lines = content.len();
-
-        frame.render_widget(
-            Paragraph::new(status_text)
-                .style(Style::default().bg(status_color).fg(Color::White).bold()),
-            foot_chunks[0],
-        );
-
-        frame.render_widget(
-            Paragraph::new(format!(" URL: {} ", url))
-                .alignment(Alignment::Left)
-                .style(Style::default().fg(Color::Gray)),
-            foot_chunks[1],
-        );
-
-        // Only show full help text if there's enough width
-        let help_text = if chunks[1].width > 60 {
-            format!(
-                "{}/{}  [/] Jump [n] Next [p] Prev [q] Quit [r] Refresh",
-                current_line, total_lines
-            )
-        } else {
-            format!("{}/{}", current_line, total_lines)
-        };
-
-        frame.render_widget(
-            Paragraph::new(help_text)
-                .alignment(Alignment::Right)
-                .style(Style::default().fg(Color::Gray)),
-            foot_chunks[2],
+        render_status_footer(
+            frame,
+            chunks[1],
+            content_state,
+            content.len(),
+            url,
+            is_loading,
+            loading_success,
         );
     }
+}
+
+fn render_input_footer(frame: &mut Frame, area: Rect, input_buffer: &str) {
+    let foot_chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Min(10), Constraint::Length(25)])
+        .split(area);
+
+    frame.render_widget(
+        Paragraph::new(format!("Please input URL: {}_", input_buffer))
+            .style(Style::default().fg(Color::White).bold()),
+        foot_chunks[0],
+    );
+
+    // Footer hints
+    frame.render_widget(
+        Paragraph::new(" [Enter] Go  [Esc] Cancel")
+            .alignment(Alignment::Right)
+            .style(Style::default().fg(Color::Gray)),
+        foot_chunks[1],
+    );
+}
+
+fn render_status_footer(
+    frame: &mut Frame,
+    area: Rect,
+    content_state: &ListState,
+    total_lines: usize,
+    url: &str,
+    is_loading: bool,
+    loading_success: bool,
+) {
+    let foot_chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Length(11),
+            Constraint::Min(1),
+            Constraint::Max(55),
+        ])
+        .split(area);
+
+    let (status_text, status_color) = match is_loading {
+        true => ("  LOADING  ", Color::Yellow),
+        false if loading_success => ("  LOADED  ", Color::Green),
+        _ => ("  FAILED  ", Color::Red),
+    };
+
+    let current_line = content_state.selected().map(|i| i + 1).unwrap_or(0);
+
+    frame.render_widget(
+        Paragraph::new(status_text)
+            .style(Style::default().bg(status_color).fg(Color::White).bold()),
+        foot_chunks[0],
+    );
+
+    frame.render_widget(
+        Paragraph::new(format!(" URL: {} ", url))
+            .alignment(Alignment::Left)
+            .style(Style::default().fg(Color::Gray)),
+        foot_chunks[1],
+    );
+
+    // Only show full help text if there's enough width
+    let help_text = if area.width > 60 {
+        format!(
+            "{}/{}  [/] Jump [n] Next [p] Prev [q] Quit [r] Refresh",
+            current_line, total_lines
+        )
+    } else {
+        format!("{}/{}", current_line, total_lines)
+    };
+
+    frame.render_widget(
+        Paragraph::new(help_text)
+            .alignment(Alignment::Right)
+            .style(Style::default().fg(Color::Gray)),
+        foot_chunks[2],
+    );
 }

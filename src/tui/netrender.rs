@@ -1,6 +1,6 @@
 // src/tui/netrender.rs
 use ratatui::{prelude::*, widgets::*};
-
+use ratatui::text::Line;
 pub struct AppState {
     pub content_state: ListState,
     pub loading_success: bool,
@@ -39,13 +39,12 @@ pub fn render_ui(
         .iter()
         .map(|line| {
             let wrapped = textwrap::wrap(line, inner_width);
-            let mut joined = wrapped
-                .iter()
-                .map(|c| c.to_string())
-                .collect::<Vec<_>>()
-                .join("\n");
-            joined.push_str("\n\n");
-            ListItem::new(joined)
+            let mut lines: Vec<Line> = wrapped
+                .into_iter()
+                .map(|c| Line::raw(c))
+                .collect();
+            lines.push(Line::raw(""));
+            ListItem::new(lines)
         })
         .collect();
 

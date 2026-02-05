@@ -169,11 +169,11 @@ fn render_content(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &N
         let wrapped = textwrap::wrap(line, inner_width);    
         let mut lines: Vec<Line> = wrapped
             .into_iter()
-            .map(|c| Line::from(c))
+            .map(|c| Line::raw(c))
             .collect();
 
         if state.inc_line_space {
-            lines.push(Line::from("")); 
+            lines.push(Line::raw("")); 
         }
         ListItem::new(Text::from(lines))
     })

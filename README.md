@@ -10,7 +10,6 @@ A tui novel reader, Powered by [ratatui](https://github.com/ratatui/ratatui)
 - **Resume reading**: Press q to quit and auto mark a bookmark; next time you open the book, it jumps back to last bookmarks.
 - **Bookmarks**: Add, remove, and manage bookmarks for easy navigation
 - **Auto-Read Mode**: Hands-free reading with automatic scrolling
-- **Read from website**: `webnovel` can read from website (WIP)
 - **theme**: Change highlight color by `--theme`
 
 ## Installation
@@ -19,8 +18,6 @@ A tui novel reader, Powered by [ratatui](https://github.com/ratatui/ratatui)
 cargo install noveltui
 # only install noveltui
 cargo install noveltui --bin noveltui
-# only install webnovel
-cargo insatll noveltui --bin webnovel
 ```
 
 ## Build from Source
@@ -30,8 +27,7 @@ cd noveltui
 cargo build --release
 ```
 
-`target/release/noveltui` read from local txt<br>
-`target/release/webnovel` read from website
+`target/release/noveltui` read from local txt
 
 ## Usage
 
@@ -39,12 +35,17 @@ cargo build --release
 ./noveltui path/to/your/novel.txt
 ```
 
+<details>
+<summary>⚠️</summary>
+
 ```bash
 ./webnovel --url website
 #e.g.
 ./webnovel --url https://ixdzs8.com/read/508569/p1.html
 ```
 > Tips: webnovel only supoort `https://ixdzs8.com/` now, and need install chrome
+</details>
+
 
 ## Supported 
 ### os

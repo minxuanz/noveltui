@@ -4,8 +4,7 @@
 
 A tui novel reader, Powered by [ratatui](https://github.com/ratatui/ratatui)
 
-## Features
-- **Lightweight & Efficient**: Small binary size, low memory usage 
+## Features 
 - **Chapter Parsing**: Automatically detects and navigates chapters by regex and generate toc
 - **Resume reading**: Press q to quit and auto mark a bookmark; next time you open the book, it jumps back to last bookmarks.
 - **Bookmarks**: Add, remove, and manage bookmarks for easy navigation

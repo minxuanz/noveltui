@@ -208,7 +208,7 @@ fn render_bookmarks(frame: &mut Frame, area: Rect, state: &mut AppState, novel: 
                 .map(|c| c.title.as_ref())
                 .unwrap_or("");
 
-            let text = Text::from(vec![Line::raw(title), Line::raw(b.content)]);
+            let text = Text::from(vec![Line::raw(title), Line::raw(b.content), Line::raw("")]);
 
             ListItem::new(text)
         })

@@ -17,4 +17,4 @@ headless_chrome = "1.0.20"
 ratatui = { workspace = true }
 scraper = "0.25.0"
 textwrap = { workspace = true }
-theme = { path = "../theme" }
+noveltui-theme = { path = "../noveltui-theme", version = "0.1.0" }

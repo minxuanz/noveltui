@@ -19,4 +19,4 @@ ratatui = { workspace = true }
 regex = "1.12.2"
 signal-hook = "0.3.18"
 textwrap = { workspace = true }
-theme = { path = "../theme" }
+noveltui-theme = { path = "../noveltui-theme", version = "0.1.0" }

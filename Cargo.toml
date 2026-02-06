@@ -1,5 +1,5 @@
 [workspace]
-members = ["noveltui", "webnovel", "theme"]
+members = ["noveltui", "webnovel", "noveltui-theme"]
 resolver = "2"
 
 [workspace.dependencies]

@@ -982,11 +982,18 @@ dependencies = [
  "clap",
  "crossterm 0.29.0",
  "encoding_rs",
+ "noveltui-theme",
  "ratatui",
  "regex",
  "signal-hook",
  "textwrap",
- "theme",
+]
+
+[[package]]
+name = "noveltui-theme"
+version = "0.1.0"
+dependencies = [
+ "ratatui",
 ]
 
 [[package]]
@@ -1636,13 +1643,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "theme"
-version = "0.1.0"
-dependencies = [
- "ratatui",
-]
-
-[[package]]
 name = "thiserror"
 version = "2.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1843,10 +1843,10 @@ dependencies = [
  "clap",
  "crossterm 0.29.0",
  "headless_chrome",
+ "noveltui-theme",
  "ratatui",
  "scraper",
  "textwrap",
- "theme",
 ]
 
 [[package]]

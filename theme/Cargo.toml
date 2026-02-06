@@ -1,0 +1,10 @@
+[package]
+name = "theme"
+version = "0.1.0"
+edition = "2024"
+authors = ["minxuanz <manypotatoes1@gmail.com>"]
+description = "Color theme library for noveltui"
+license = "MIT"
+
+[dependencies]
+ratatui = { workspace = true }

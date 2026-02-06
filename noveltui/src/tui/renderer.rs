@@ -129,12 +129,7 @@ fn render_toc(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &Novel
         .map(|c| ListItem::new(c.title.as_ref()))
         .collect();
 
-    let theme_color = Color::Rgb(129, 199, 212); // #81C7D4
-    let highlight = if state.focus == FocusArea::Toc {
-        Style::default().fg(theme_color)
-    } else {
-        Style::default().fg(Color::DarkGray)
-    };
+    let theme_color = state.theme_colors.toc;
 
     let block = Block::default()
         .borders(Borders::ALL)
@@ -144,7 +139,7 @@ fn render_toc(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &Novel
 
     let list = List::new(items)
         .block(block)
-        .highlight_style(highlight)
+        .highlight_style(theme_color)
         .highlight_symbol(" > ");
     frame.render_stateful_widget(list, area, &mut state.toc_state);
 }
@@ -160,7 +155,7 @@ fn render_content(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &N
     {
         format!(" {} ", meta.title.as_ref())
     } else {
-        "".to_string()
+        String::default()
     };
 
     let items: Vec<ListItem> = chapter_lines
@@ -176,7 +171,7 @@ fn render_content(frame: &mut Frame, area: Rect, state: &mut AppState, novel: &N
         })
         .collect();
 
-    let highlight = Style::default().fg(Color::Rgb(168, 216, 185));
+    let highlight = Style::default().fg(state.theme_colors.content);
 
     let block = Block::default()
         .borders(Borders::ALL)
@@ -215,12 +210,7 @@ fn render_bookmarks(frame: &mut Frame, area: Rect, state: &mut AppState, novel: 
         })
         .collect();
 
-    let theme_color = Color::Rgb(248, 195, 205); // #F8C3CD
-    let highlight = if state.focus == FocusArea::Bookmark {
-        Style::default().fg(theme_color)
-    } else {
-        Style::default().fg(Color::DarkGray)
-    };
+    let theme_color = state.theme_colors.bookmark;
 
     let list = List::new(items)
         .block(
@@ -230,7 +220,7 @@ fn render_bookmarks(frame: &mut Frame, area: Rect, state: &mut AppState, novel: 
                 .border_style(Style::default().fg(theme_color))
                 .title(" Bookmarks "),
         )
-        .highlight_style(highlight)
+        .highlight_style(theme_color)
         .highlight_symbol(" ● ");
 
     frame.render_stateful_widget(list, area, &mut state.bookmark_state);
@@ -244,7 +234,7 @@ fn render_footer(frame: &mut Frame, area: Rect, state: &AppState, novel: &Novel)
     let mut constraints = Vec::new();
 
     // [0] Focus Area
-    let focus_width = if is_tiny { 8 } else { 12 };
+    let focus_width = if is_tiny { 8 } else { 11 };
     constraints.push(Constraint::Length(focus_width));
 
     // [1] Chapter Title
@@ -282,25 +272,22 @@ fn render_footer(frame: &mut Frame, area: Rect, state: &AppState, novel: &Novel)
     let (label, color) = match state.focus {
         FocusArea::Toc => (
             if is_tiny { " TOC" } else { "    TOC" },
-            Color::Rgb(81, 168, 221),
+            state.theme_colors.toc,
         ),
         FocusArea::Content => (
             if is_tiny { " CTX" } else { "  CONTENT" },
-            Color::Rgb(0, 170, 144),
+            state.theme_colors.content,
         ),
         FocusArea::Bookmark => (
-            if is_tiny { " MRK" } else { "    MARK" },
-            Color::Rgb(191, 103, 102),
+            if is_tiny { " MRK" } else { " BOOKMARKS" },
+            state.theme_colors.bookmark,
         ),
     };
 
     frame.render_widget(
-        Paragraph::new(label).alignment(Alignment::Left).style(
-            Style::default()
-                .bg(color)
-                .fg(Color::Green)
-                .add_modifier(Modifier::BOLD),
-        ),
+        Paragraph::new(label)
+            .alignment(Alignment::Left)
+            .style(Style::default().bg(color).add_modifier(Modifier::BOLD)),
         layout[chunk_idx],
     );
     chunk_idx += 1;
@@ -411,7 +398,7 @@ fn render_delete_confirmation(frame: &mut Frame, area: Rect) {
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(Color::Green));
+        .border_style(Style::default().fg(Color::Red));
     //frame.render_widget(block, dialog_area);
     let inner_area = block.inner(dialog_area);
     frame.render_widget(block, dialog_area);

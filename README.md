@@ -11,6 +11,7 @@ A tui novel reader, Powered by [ratatui](https://github.com/ratatui/ratatui)
 - **Bookmarks**: Add, remove, and manage bookmarks for easy navigation
 - **Auto-Read Mode**: Hands-free reading with automatic scrolling
 - **Read from website**: `webnovel` can read from website (WIP)
+- **theme**: Change highlight color by `--theme`
 
 ## Installation
 

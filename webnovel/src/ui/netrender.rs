@@ -2,6 +2,7 @@
 use ratatui::text::Line;
 use ratatui::widgets::ListState;
 use ratatui::{prelude::*, widgets::*};
+use theme::ThemeColors;
 
 /// 渲染 UI
 pub fn render_ui(
@@ -16,6 +17,7 @@ pub fn render_ui(
     is_loading: bool,
     loading_success: bool,
     inc_line_space: bool,
+    theme_colors: ThemeColors,
 ) {
     let constraint = if show_input || show_title {
         [Constraint::Min(1), Constraint::Length(1)]
@@ -57,11 +59,7 @@ pub fn render_ui(
 
     let list = List::new(items)
         .block(blocks)
-        .highlight_style(
-            Style::default()
-                // #96CEC1
-                .fg(Color::Rgb(150, 206, 193)),
-        )
+        .highlight_style(Style::default().fg(theme_colors.content))
         .highlight_symbol(" > ");
 
     frame.render_stateful_widget(list, chunks[0], content_state);

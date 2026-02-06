@@ -1,6 +1,7 @@
 // src/tui/state.rs
 use crate::core::novel::Novel;
 use ratatui::widgets::ListState;
+use theme::ThemeColors;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Default)]
 pub enum FocusArea {
@@ -48,10 +49,13 @@ pub struct AppState {
 
     // whether increase line space
     pub inc_line_space: bool,
+
+    // Theme colors
+    pub theme_colors: ThemeColors,
 }
 
 impl AppState {
-    pub fn new(show_title: bool, speed: f64, page_size: usize) -> Self {
+    pub fn new(show_title: bool, speed: f64, page_size: usize, theme_colors: ThemeColors) -> Self {
         let mut toc_state = ListState::default();
         toc_state.select(Some(0));
         let mut content_state = ListState::default();
@@ -76,6 +80,7 @@ impl AppState {
             needs_reinit: false,
             should_remove_bookmark: true,
             inc_line_space: false,
+            theme_colors,
         }
     }
 

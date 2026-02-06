@@ -2,6 +2,7 @@ use anyhow::Result;
 use clap::Parser;
 use crossterm::event::{self, Event};
 use ratatui::prelude::*;
+use theme::ThemePreset;
 use webnovel::app::{
     AppAction, AppState, ContentData, ContentLoader, EventHandler, receive_updates,
 };
@@ -16,6 +17,11 @@ struct Args {
     /// Set the number of rows per page (default: 8)
     #[arg(short, long, default_value_t = 8)]
     page_size: usize,
+
+    /// Set the color theme (default: default)
+    /// Available themes: default, ocean, forest, sunset, midnight, sakura
+    #[arg(short, long, value_name = "THEME", default_value = "default")]
+    theme: ThemePreset,
 }
 
 fn main() -> Result<()> {
@@ -38,6 +44,7 @@ fn main() -> Result<()> {
 
 fn run_app(terminal: &mut Terminal<impl Backend>, args: Args) -> Result<()> {
     // 初始化状态
+    let theme_colors = args.theme.colors();
     let mut state = AppState::new(args.page_size);
     let mut event_handler = EventHandler::new();
     let (loader, receiver) = ContentLoader::new();
@@ -75,6 +82,7 @@ fn run_app(terminal: &mut Terminal<impl Backend>, args: Args) -> Result<()> {
                 content_data.is_loading,
                 content_data.success,
                 state.inc_line_space,
+                theme_colors,
             )
         })?;
 

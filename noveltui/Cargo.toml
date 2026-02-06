@@ -1,6 +1,6 @@
 [package]
 name = "noveltui"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2024"
 authors = ["minxuanz <manypotatoes1@gmail.com>"]
 description = "A terminal-based novel reader (TUI)"
@@ -19,3 +19,4 @@ ratatui = { workspace = true }
 regex = "1.12.2"
 signal-hook = "0.3.18"
 textwrap = { workspace = true }
+theme = { path = "../theme" }

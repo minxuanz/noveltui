@@ -19,7 +19,13 @@ pub struct App {
 
 impl App {
     pub fn new(options: Options, novel: Novel) -> Result<Self> {
-        let mut state = AppState::new(!options.simple_mode, options.speed, options.page_size);
+        let theme_colors = options.theme.colors();
+        let mut state = AppState::new(
+            !options.simple_mode,
+            options.speed,
+            options.page_size,
+            theme_colors,
+        );
 
         // Initial Bookmark Cache
         state.refresh_bookmarks(&novel);

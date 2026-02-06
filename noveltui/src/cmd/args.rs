@@ -1,5 +1,6 @@
 use clap::Parser;
 use std::path::PathBuf;
+use theme::ThemePreset;
 
 #[derive(Parser, Debug, Clone, Default)]
 #[command(author, version, about, long_about = None)]
@@ -35,4 +36,9 @@ pub struct Options {
     /// Set regex filter for chapter titles
     #[arg(short, long)]
     pub regex: Option<String>,
+
+    /// Set the color theme (default: default)
+    /// Available themes: default, ocean, forest, sunset, midnight, sakura
+    #[arg(short, long, value_name = "THEME", default_value = "default")]
+    pub theme: ThemePreset,
 }

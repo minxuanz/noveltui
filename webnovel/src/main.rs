@@ -1,8 +1,8 @@
 use anyhow::Result;
 use clap::Parser;
 use crossterm::event::{self, Event};
-use ratatui::prelude::*;
 use noveltui_theme::ThemePreset;
+use ratatui::prelude::*;
 use webnovel::app::{
     AppAction, AppState, ContentData, ContentLoader, EventHandler, receive_updates,
 };

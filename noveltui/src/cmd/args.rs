@@ -1,6 +1,6 @@
 use clap::Parser;
-use std::path::PathBuf;
 use noveltui_theme::ThemePreset;
+use std::path::PathBuf;
 
 #[derive(Parser, Debug, Clone, Default)]
 #[command(author, version, about, long_about = None)]

@@ -1,5 +1,6 @@
 use crate::core::novel::Novel;
 use crate::tui::state::{AppState, FocusArea};
+
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -206,7 +207,10 @@ fn render_bookmarks(frame: &mut Frame, area: Rect, state: &mut AppState, novel: 
                 .get(b.chapter_index)
                 .map(|c| c.title.as_ref())
                 .unwrap_or("");
-            ListItem::new(format!("[{}] {}", title, b.content))
+
+            let text = Text::from(vec![Line::raw(title), Line::raw(b.content)]);
+
+            ListItem::new(text)
         })
         .collect();
 

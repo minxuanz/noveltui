@@ -1,8 +1,8 @@
 // src/ui/netrender.rs
+use noveltui_theme::ThemeColors;
 use ratatui::text::Line;
 use ratatui::widgets::ListState;
 use ratatui::{prelude::*, widgets::*};
-use noveltui_theme::ThemeColors;
 
 /// 渲染 UI
 pub fn render_ui(

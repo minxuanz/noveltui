@@ -1,7 +1,7 @@
 // src/tui/state.rs
 use crate::core::novel::Novel;
-use ratatui::widgets::ListState;
 use noveltui_theme::ThemeColors;
+use ratatui::widgets::ListState;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Default)]
 pub enum FocusArea {

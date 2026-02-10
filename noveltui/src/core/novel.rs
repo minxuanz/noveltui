@@ -1,12 +1,11 @@
 use super::pagination::ChapterMetadata;
 use crate::cmd::args::Options;
-use clap::Parser;
 
 pub const BOOKMARK_SYMBOL: &str = "🔖";
 
 /// Represents a single bookmark entry.
 #[derive(Debug, Clone)]
-pub struct BookmarkEntry<'a> {
+pub struct BookmarkEntry {
     /// Global line index in the file
     pub global_index: usize,
     /// The index of the chapter this line belongs to
@@ -14,8 +13,7 @@ pub struct BookmarkEntry<'a> {
     /// The line index relative to the chapter start
     pub line_in_chapter: usize,
     /// The text content
-    pub content: &'a str,
-    // (removed) title of chapter is read from `Novel.chapters` via `chapter_index`
+    pub content: String,
 }
 
 /// The Domain Model holding all data.
@@ -28,8 +26,8 @@ pub struct Novel {
 }
 
 impl Novel {
-    pub fn new(lines: Vec<String>) -> Self {
-        let chapters = ChapterMetadata::parse_chapters(&lines, &Options::parse());
+    pub fn new(lines: Vec<String>, options: &Options) -> Self {
+        let chapters = ChapterMetadata::parse_chapters(&lines, options);
         Self { lines, chapters }
     }
 
@@ -42,7 +40,7 @@ impl Novel {
     }
 
     /// Scans the entire file to rebuild the list of bookmarks.
-    pub fn collect_bookmarks<'a>(&'a self) -> Vec<BookmarkEntry<'a>> {
+    pub fn collect_bookmarks(&self) -> Vec<BookmarkEntry> {
         let mut bookmarks = Vec::new();
         let symbol_len = BOOKMARK_SYMBOL.len();
 
@@ -60,7 +58,7 @@ impl Novel {
                             global_index: chapter.range.start + local_idx,
                             chapter_index: c_idx,
                             line_in_chapter: local_idx,
-                            content: clean_content,
+                            content: clean_content.to_string(),
                         });
                     }
                 }

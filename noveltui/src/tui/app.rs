@@ -226,9 +226,8 @@ impl App {
                     //self.jump_to_bookmark();
                 } else {
                     // move last
-                    let bookmarks = self.novel.collect_bookmarks();
-                    if !bookmarks.is_empty() {
-                        self.state.bookmark_state.select(Some(bookmarks.len() - 1));
+                    if !self.state.cached_bookmarks.is_empty() {
+                        self.state.bookmark_state.select(Some(self.state.cached_bookmarks.len() - 1));
                     }
                 }
             }
@@ -263,7 +262,7 @@ impl App {
             }
             FocusArea::Bookmark => {
                 let curr = self.state.bookmark_state.selected().unwrap_or(0);
-                if curr + 1 < self.novel.collect_bookmarks().len() {
+                if curr + 1 < self.state.cached_bookmarks.len() {
                     self.state.bookmark_state.select(Some(curr + 1));
                 } else {
                     // move first
@@ -326,8 +325,7 @@ impl App {
     }
 
     fn clear_all_bookmarks(&mut self) {
-        let bookmarks = self.novel.collect_bookmarks();
-        let indices: Vec<usize> = bookmarks.iter().map(|b| b.global_index).collect();
+        let indices: Vec<usize> = self.state.cached_bookmarks.iter().map(|b| b.global_index).collect();
         for idx in indices {
             self.novel.remove_bookmark(idx);
         }
@@ -342,8 +340,7 @@ impl App {
 
     fn jump_to_bookmark(&mut self) {
         if let Some(idx) = self.state.bookmark_state.selected() {
-            let bookmarks = self.novel.collect_bookmarks();
-            if let Some(bm) = bookmarks.get(idx) {
+            if let Some(bm) = self.state.cached_bookmarks.get(idx) {
                 let chapter_idx = bm.chapter_index;
                 let line_in_chapter = bm.line_in_chapter;
                 self.select_chapter(chapter_idx);
@@ -363,8 +360,7 @@ impl App {
                 return Err(anyhow::anyhow!("Chapter number {} out of range.", ch));
             }
         } else if let Some(bm_num) = self.options.bookmark {
-            let bookmarks = self.novel.collect_bookmarks();
-            if bm_num > 0 && bm_num <= bookmarks.len() {
+            if bm_num > 0 && bm_num <= self.state.cached_bookmarks.len() {
                 self.state.bookmark_state.select(Some(bm_num - 1));
                 self.jump_to_bookmark();
                 self.state.focus = FocusArea::Content;
@@ -373,9 +369,8 @@ impl App {
             }
         } else {
             // Default to last bookmarks
-            let bookmarks = self.novel.collect_bookmarks();
-            if !bookmarks.is_empty() {
-                let last_idx = bookmarks.len() - 1;
+            if !self.state.cached_bookmarks.is_empty() {
+                let last_idx = self.state.cached_bookmarks.len() - 1;
                 self.state.bookmark_state.select(Some(last_idx));
                 self.jump_to_bookmark();
                 self.state.focus = FocusArea::Content;

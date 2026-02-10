@@ -1,5 +1,5 @@
 // src/tui/state.rs
-use crate::core::novel::Novel;
+use crate::core::novel::{BookmarkEntry, Novel};
 use noveltui_theme::ThemeColors;
 use ratatui::widgets::ListState;
 
@@ -52,6 +52,9 @@ pub struct AppState {
 
     // Theme colors
     pub theme_colors: ThemeColors,
+
+    // Cached bookmarks (performance optimization)
+    pub cached_bookmarks: Vec<BookmarkEntry>,
 }
 
 impl AppState {
@@ -81,12 +84,15 @@ impl AppState {
             should_remove_bookmark: true,
             inc_line_space: false,
             theme_colors,
+            cached_bookmarks: Vec::new(),
         }
     }
 
     pub fn refresh_bookmarks(&mut self, novel: &Novel) {
-        let bookmarks = novel.collect_bookmarks();
-        let len = bookmarks.len();
+        // Cache the bookmarks for performance
+        self.cached_bookmarks = novel.collect_bookmarks();
+
+        let len = self.cached_bookmarks.len();
         if len > 0 {
             if self.bookmark_state.selected().is_none() {
                 self.bookmark_state.select(Some(0));

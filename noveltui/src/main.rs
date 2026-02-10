@@ -6,7 +6,7 @@ use noveltui::infra::fs;
 use noveltui::tui::app::App;
 use std::path::Path;
 
-fn initialize_novel(file_path: &Path) -> Result<Novel> {
+fn initialize_novel(file_path: &Path, options: &Options) -> Result<Novel> {
     let extension = file_path
         .extension()
         .and_then(|s| s.to_str())
@@ -19,7 +19,7 @@ fn initialize_novel(file_path: &Path) -> Result<Novel> {
     }
 
     let lines = fs::load_content(file_path)?;
-    Ok(Novel::new(lines))
+    Ok(Novel::new(lines, options))
 }
 
 fn show_bookmarks_cli(novel: &Novel, file_path: &Path) {
@@ -43,7 +43,7 @@ fn show_bookmarks_cli(novel: &Novel, file_path: &Path) {
 fn main() -> Result<()> {
     let args = Options::parse();
 
-    let novel = initialize_novel(&args.file_path)?;
+    let novel = initialize_novel(&args.file_path, &args)?;
 
     // CLI Mode: Show bookmarks
     if args.show_bookmarks {

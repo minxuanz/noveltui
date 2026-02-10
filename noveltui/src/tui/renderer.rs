@@ -198,8 +198,7 @@ fn render_bookmarks(frame: &mut Frame, area: Rect, state: &mut AppState, novel: 
     };
     frame.render_widget(Clear, clear_area); // clear background
 
-    let bookmarks = novel.collect_bookmarks();
-    let items: Vec<ListItem> = bookmarks
+    let items: Vec<ListItem> = state.cached_bookmarks
         .iter()
         .map(|b| {
             let title = novel
@@ -208,7 +207,7 @@ fn render_bookmarks(frame: &mut Frame, area: Rect, state: &mut AppState, novel: 
                 .map(|c| c.title.as_ref())
                 .unwrap_or("");
 
-            let text = Text::from(vec![Line::raw(title), Line::raw(b.content), Line::raw("")]);
+            let text = Text::from(vec![Line::raw(title), Line::raw(&b.content), Line::raw("")]);
 
             ListItem::new(text)
         })

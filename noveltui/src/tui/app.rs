@@ -315,7 +315,12 @@ impl App {
                 // Update bookmark selection state immediately
                 self.state.refresh_bookmarks(&self.novel);
                 // Save best effort
-                let _ = fs::save_content(&self.options.file_path, &self.novel.lines);
+                match fs::save_content(&self.options.file_path, &self.novel.lines) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        eprintln!("Failed to save content: {}", e);
+                    }
+                }
             }
         }
     }
@@ -327,7 +332,12 @@ impl App {
             self.novel.remove_bookmark(idx);
         }
         self.state.refresh_bookmarks(&self.novel);
-        let _ = fs::save_content(&self.options.file_path, &self.novel.lines);
+        match fs::save_content(&self.options.file_path, &self.novel.lines) {
+            Ok(_) => {}
+            Err(e) => {
+                eprintln!("Failed to save content: {}", e);
+            }
+        }
     }
 
     fn jump_to_bookmark(&mut self) {

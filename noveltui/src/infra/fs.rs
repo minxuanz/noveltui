@@ -22,7 +22,10 @@ pub fn load_content(path: &Path) -> Result<Vec<String>> {
 }
 
 pub fn save_content(path: &Path, lines: &[String]) -> Result<()> {
+    #[cfg(unix)]
     let content = lines.join("\n");
+    #[cfg(windows)]
+    let content = lines.join("\r\n");
     fs::write(path, content)?;
     Ok(())
 }
